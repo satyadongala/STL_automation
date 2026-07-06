@@ -8,7 +8,7 @@ export const ToastContainer: React.FC = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:bottom-5 z-50 flex flex-col gap-2 max-w-sm sm:w-full pointer-events-none">
       {toasts.map((toast) => {
         let bgColor = 'bg-white/85 border-brand-200/50';
         let icon = <Info className="w-5 h-5 text-blue-400 animate-pulse" />;
@@ -24,7 +24,7 @@ export const ToastContainer: React.FC = () => {
         return (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 p-4 rounded-xl border glass-panel shadow-2xl transition-all duration-300 animate-slide-in ${bgColor}`}
+            className={`flex items-center gap-3 p-4 rounded-xl border glass-panel shadow-2xl transition-all duration-300 animate-slide-in pointer-events-auto ${bgColor}`}
           >
             <div className="flex-shrink-0">{icon}</div>
             <div className="flex-grow text-sm font-medium">{toast.message}</div>

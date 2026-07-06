@@ -164,7 +164,7 @@ export const WorkflowDetails: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       <Link to={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-800 hover:text-brand-700 mb-6 transition-colors">
         <ChevronLeft className="w-4 h-4" /> Back to Project
       </Link>

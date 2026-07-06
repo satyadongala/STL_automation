@@ -65,11 +65,11 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-extrabold text-gradient-aqua">Automation Hub</h2>
-          <p className="text-text-muted mt-1">Real-time low-code UI & API test automation — execution platform and statistics.</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gradient-aqua">Automation Hub</h2>
+          <p className="text-sm sm:text-base text-text-muted mt-1">Real-time low-code UI & API test automation — execution platform and statistics.</p>
         </div>
       </div>
 
@@ -231,14 +231,14 @@ export const Dashboard: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-brand-50/80 text-left">
-                <th className="px-6 py-3 font-semibold text-label">Project</th>
-                <th className="px-6 py-3 font-semibold text-label">Date & Time</th>
-                <th className="px-6 py-3 font-semibold text-label">Status</th>
-                <th className="px-6 py-3 font-semibold text-label text-center">Passed</th>
-                <th className="px-6 py-3 font-semibold text-label text-center">Failed</th>
-                <th className="px-6 py-3 font-semibold text-label text-center">Total</th>
-                <th className="px-6 py-3 font-semibold text-label">Duration</th>
-                <th className="px-6 py-3 font-semibold text-label text-right">Report</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-label whitespace-nowrap">Project</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-label whitespace-nowrap">Date & Time</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-label whitespace-nowrap">Status</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-label text-center whitespace-nowrap">Passed</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-label text-center whitespace-nowrap">Failed</th>
+                <th className="hidden sm:table-cell px-3 sm:px-6 py-3 font-semibold text-label text-center whitespace-nowrap">Total</th>
+                <th className="hidden md:table-cell px-3 sm:px-6 py-3 font-semibold text-label whitespace-nowrap">Duration</th>
+                <th className="px-3 sm:px-6 py-3 font-semibold text-label text-right whitespace-nowrap">Report</th>
               </tr>
             </thead>
             <tbody>
@@ -253,8 +253,8 @@ export const Dashboard: React.FC = () => {
                   const st = statusLabel(run.status);
                   return (
                     <tr key={run.id} className="border-t border-brand-100/80 hover:bg-white/60 transition-colors">
-                      <td className="px-6 py-4 font-medium text-text-primary">{run.project?.name || '—'}</td>
-                      <td className="px-6 py-4 text-text-secondary">
+                      <td className="px-3 sm:px-6 py-4 font-medium text-text-primary max-w-[120px] sm:max-w-none truncate">{run.project?.name || '—'}</td>
+                      <td className="px-3 sm:px-6 py-4 text-text-secondary whitespace-nowrap text-xs sm:text-sm">
                         {new Date(run.startedAt || run.createdAt).toLocaleString([], {
                           month: 'short',
                           day: 'numeric',
@@ -263,7 +263,7 @@ export const Dashboard: React.FC = () => {
                           minute: '2-digit',
                         })}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${st.className}`}>
                           {run.status === 'COMPLETED' && <CheckCircle2 className="w-3.5 h-3.5" />}
                           {run.status === 'FAILED' && <XCircle className="w-3.5 h-3.5" />}
@@ -271,11 +271,11 @@ export const Dashboard: React.FC = () => {
                           {st.text}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center font-semibold text-emerald-700">{run.summaryPassed ?? 0}</td>
-                      <td className="px-6 py-4 text-center font-semibold text-rose-700">{run.summaryFailed ?? 0}</td>
-                      <td className="px-6 py-4 text-center font-semibold text-text-primary">{run.summaryTotal ?? 0}</td>
-                      <td className="px-6 py-4 text-text-secondary">{formatDuration(run.durationMs)}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-center font-semibold text-emerald-700">{run.summaryPassed ?? 0}</td>
+                      <td className="px-3 sm:px-6 py-4 text-center font-semibold text-rose-700">{run.summaryFailed ?? 0}</td>
+                      <td className="hidden sm:table-cell px-3 sm:px-6 py-4 text-center font-semibold text-text-primary">{run.summaryTotal ?? 0}</td>
+                      <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-text-secondary">{formatDuration(run.durationMs)}</td>
+                      <td className="px-3 sm:px-6 py-4 text-right">
                         <Link
                           to={run.status === 'RUNNING' ? `/execution/${run.id}` : `/report/${run.id}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-brand-200 text-brand-800 hover:bg-brand-50 text-xs font-semibold transition-colors"

@@ -141,10 +141,10 @@ export const ReportViewer: React.FC = () => {
   const reportsReady = run.status === 'COMPLETED' || run.status === 'FAILED';
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden p-6 max-w-full">
+    <div className="flex-1 flex flex-col overflow-hidden p-4 sm:p-6 max-w-full min-h-0">
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-4 mb-5 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-5 flex-shrink-0">
         <Link
           to={`/projects/${run.projectId}`}
           className="p-2 rounded-xl bg-white border border-brand-200 text-brand-800 hover:text-brand-900 hover:border-brand-400 transition-colors"
@@ -164,7 +164,7 @@ export const ReportViewer: React.FC = () => {
         </div>
 
         {/* Summary chips */}
-        <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+        <div className="ml-auto flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
           {reportsReady && (
             <>
               <a

@@ -64,7 +64,7 @@ export const HistoryPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-brand-200/50 pb-5">
         <div>
           <h2 className="text-3xl font-extrabold text-gradient-aqua">Execution History</h2>

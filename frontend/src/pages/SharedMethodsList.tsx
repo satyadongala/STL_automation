@@ -91,14 +91,14 @@ export const SharedMethodsList: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <header className="px-8 py-6 border-b border-brand-200/60 bg-white/55 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
+      <header className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-brand-200/60 bg-white/55 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-10 backdrop-blur-md shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-gradient-aqua">Shared Methods</h1>
-          <p className="text-text-muted mt-1">Reusable UI flows and interactions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gradient-aqua">Shared Methods</h1>
+          <p className="text-sm text-text-muted mt-1">Reusable UI flows and interactions</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
           <select 
-            className="bg-white/85 border border-brand-300/40 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="bg-white/85 border border-brand-300/40 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 w-full sm:w-auto"
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
           >
@@ -110,7 +110,7 @@ export const SharedMethodsList: React.FC = () => {
           {selectedProjectId && (
             <Link 
               to={`/projects/${selectedProjectId}/shared-methods/new`} 
-              className="px-5 py-2.5 btn-primary rounded-xl font-medium transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] flex items-center gap-2"
+              className="px-5 py-2.5 btn-primary rounded-xl font-medium transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
               Create Method
@@ -119,7 +119,7 @@ export const SharedMethodsList: React.FC = () => {
         </div>
       </header>
 
-      <div className="p-8 overflow-y-auto flex-1">
+      <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1">
         <div className="mb-6 max-w-md relative">
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
           <input 

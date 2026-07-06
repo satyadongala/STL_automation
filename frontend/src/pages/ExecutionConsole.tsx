@@ -94,7 +94,7 @@ export const ExecutionConsole: React.FC = () => {
   const isRunning = activeRun.status === 'RUNNING' || activeRun.status === 'PENDING';
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto max-w-5xl mx-auto w-full flex flex-col h-screen max-h-screen">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-5xl mx-auto w-full flex flex-col min-h-0">
       
       {/* Header Info */}
       <div className="glass-card p-6 rounded-2xl mb-6 flex flex-wrap items-center justify-between gap-6">

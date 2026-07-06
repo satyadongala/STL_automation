@@ -204,7 +204,7 @@ export const TestCaseForm: React.FC = () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto max-w-5xl mx-auto w-full">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-5xl mx-auto w-full">
       <div className="flex items-center justify-between mb-8 border-b border-brand-200/50 pb-5">
         <div>
           <h2 className="text-3xl font-extrabold text-gradient-aqua">

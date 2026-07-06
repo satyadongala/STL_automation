@@ -265,7 +265,7 @@ export const ProjectDetails: React.FC = () => {
   const currentBaseUrl = activeEnv?.baseUrl || project.baseUrl;
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       
       {/* Header and Details */}
       <div className="glass-card p-6 rounded-2xl mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-brand-500/10">
@@ -276,12 +276,12 @@ export const ProjectDetails: React.FC = () => {
               {project.projectType === 'UI' ? 'UI' : 'API'}
             </span>
           </div>
-          <h2 className="text-3xl font-extrabold text-text-primary">{project.name}</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-text-primary">{project.name}</h2>
           <p className="text-text-muted text-sm mt-1">{project.description || 'No description'}</p>
           <div className="flex flex-wrap gap-4 mt-4">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-text-secondary bg-white/85 border border-brand-200/50 px-3 py-1.5 rounded-lg">
-              <Globe className="w-3.5 h-3.5 text-brand-700" />
-              <span>Base URL: {currentBaseUrl}</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-text-secondary bg-white/85 border border-brand-200/50 px-3 py-1.5 rounded-lg max-w-full">
+              <Globe className="w-3.5 h-3.5 text-brand-700 shrink-0" />
+              <span className="truncate">Base URL: {currentBaseUrl}</span>
             </span>
           </div>
         </div>
@@ -360,10 +360,10 @@ export const ProjectDetails: React.FC = () => {
       </div>
 
       {/* Tabs Manager */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 overflow-x-auto">
         <button
           onClick={() => setActiveTab('testcases')}
-          className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+          className={`px-4 sm:px-6 py-2.5 rounded-xl font-bold text-sm transition-all shrink-0 ${
             activeTab === 'testcases' ? 'tab-active' : 'tab-inactive hover:bg-white'
           }`}
         >
@@ -374,7 +374,7 @@ export const ProjectDetails: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('workflows')}
-          className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+          className={`px-4 sm:px-6 py-2.5 rounded-xl font-bold text-sm transition-all shrink-0 ${
             activeTab === 'workflows' ? 'tab-active-indigo' : 'tab-inactive hover:bg-white'
           }`}
         >
