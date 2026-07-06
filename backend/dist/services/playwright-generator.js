@@ -72,9 +72,11 @@ function isJson(str: string): boolean {
 function buildUrl(rawPath: string): string {
   const path = resolveVariables(rawPath, runVariables);
   if (/^https?:\\/\\//i.test(path)) return path;
-  return baseUrl.endsWith('/') || path.startsWith('/')
-    ? \`\${baseUrl.replace(/\\/$/, '')}\${path}\`
-    : \`\${baseUrl}/\${path}\`;
+  const base = baseUrl.replace(/\\/+$/, '');
+  if (!path) return base;
+  if (path.startsWith('?') || path.startsWith('#')) return \`\${base}\${path}\`;
+  const segment = path.replace(/^\\/+/, '');
+  return segment ? \`\${base}/\${segment}\` : base;
 }
 
 function flattenSteps(steps: any[], passedParams: Record<string, string> = {}, depth = 0): any[] {
@@ -118,7 +120,7 @@ function getValueByPath(obj: any, path: string): any {
   if (path === '$') return obj;
   if (!path.startsWith('$.')) return undefined;
   const normalizedPath = path.slice(2).replace(/\\[(\\w+)\\]/g, '.$1');
-  const parts = normalizedPath.split('.');
+  const parts = normalizedPath.split('.').map((p) => p.trim()).filter(Boolean);
 
   let current = obj;
   for (const part of parts) {

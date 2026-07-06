@@ -18,6 +18,7 @@ const step_utils_1 = require("./step-utils");
 const trace_reporter_1 = require("./trace-reporter");
 const step_utils_2 = require("./step-utils");
 const workflow_graph_utils_1 = require("./workflow-graph-utils");
+const playwright_setup_1 = require("../services/playwright-setup");
 class LoopGuardError extends Error {
     constructor(message) {
         super(message);
@@ -100,6 +101,7 @@ class WorkflowOrchestrator {
             }
             apiContext = await test_1.request.newContext({ baseURL: baseUrl });
             if (needsBrowser) {
+                await (0, playwright_setup_1.ensurePlaywrightBrowsers)(onLog);
                 browser = await test_1.chromium.launch({ headless: !headed });
                 page = await browser.newPage();
             }

@@ -32,24 +32,42 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const dotenv = __importStar(require("dotenv"));
-const http = __importStar(require("http"));
-const server_1 = __importDefault(require("./server"));
-const ws_1 = require("./ws");
-const playwright_setup_1 = require("./services/playwright-setup");
-dotenv.config();
-const port = Number(process.env.PORT) || 5001;
-// Create HTTP server
-const server = http.createServer(server_1.default);
-// Initialize WebSockets
-ws_1.wsManager.init(server);
-// Start server
-server.listen(port, '0.0.0.0', () => {
-    console.log(`[SYS] Server running on http://localhost:${port}`);
-    console.log(`[SYS] WebSocket server is active on the same port ws://localhost:${port}`);
-    (0, playwright_setup_1.ensurePlaywrightBrowsersBackground)((msg) => process.stdout.write(msg));
-});
+exports.generateAllureReport = generateAllureReport;
+const child_process_1 = require("child_process");
+const fs = __importStar(require("fs"));
+function generateAllureReport(resultsDir, outputDir, onLog) {
+    return new Promise((resolve) => {
+        if (!fs.existsSync(resultsDir)) {
+            resolve(false);
+            return;
+        }
+        const files = fs.readdirSync(resultsDir);
+        if (files.length === 0) {
+            resolve(false);
+            return;
+        }
+        fs.mkdirSync(outputDir, { recursive: true });
+        const child = (0, child_process_1.spawn)('npx', ['allure', 'generate', resultsDir, '-o', outputDir, '--clean'], { env: { ...process.env, NO_COLOR: '1' } });
+        let stderr = '';
+        child.stderr.on('data', (d) => {
+            stderr += d.toString();
+        });
+        child.on('close', (code) => {
+            if (code === 0) {
+                if (onLog)
+                    onLog(`[SYS] Allure report ready at reports/allure/${pathBasename(outputDir)}/index.html\n`);
+                resolve(true);
+            }
+            else {
+                if (onLog)
+                    onLog(`[SYS] Allure report generation skipped (${stderr.trim() || `exit ${code}`})\n`);
+                resolve(false);
+            }
+        });
+        child.on('error', () => resolve(false));
+    });
+}
+function pathBasename(p) {
+    return p.split(/[/\\]/).filter(Boolean).pop() || '';
+}

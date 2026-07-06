@@ -6,143 +6,129 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeneratorService = void 0;
 const archiver_1 = __importDefault(require("archiver"));
 const db_1 = __importDefault(require("../db"));
+const framework_scaffold_1 = require("./framework-scaffold");
 const playwright_generator_1 = require("./playwright-generator");
+const slugify = (name) => name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'test';
+const parseJson = (value, fallback) => {
+    try {
+        return value ? JSON.parse(value) : fallback;
+    }
+    catch {
+        return fallback;
+    }
+};
 class GeneratorService {
-    /**
-     * Generates a preview of the files that will be created.
-     */
     static async generatePreview(projectId) {
         const files = await this.generateFileContents(projectId);
-        return Object.keys(files).map(path => ({
-            path,
-            content: files[path]
-        }));
+        return Object.entries(files)
+            .map(([path, content]) => ({ path, content }))
+            .sort((a, b) => a.path.localeCompare(b.path));
     }
-    /**
-     * Streams a ZIP of the generated Playwright project to the provided response.
-     */
     static async downloadProjectAsZip(projectId, res) {
-        const files = await this.generateFileContents(projectId);
         const project = await db_1.default.project.findUnique({ where: { id: projectId } });
-        const projectName = project?.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'api_project';
-        res.attachment(`${projectName}_playwright.zip`);
+        if (!project)
+            throw new Error('Project not found');
+        const files = await this.generateFileContents(projectId);
+        const zipName = `${slugify(project.name)}-playwright-framework.zip`;
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
         const archive = (0, archiver_1.default)('zip', { zlib: { level: 9 } });
         archive.on('error', (err) => {
-            res.status(500).send({ error: err.message });
+            throw err;
         });
         archive.pipe(res);
-        for (const [filePath, content] of Object.entries(files)) {
-            archive.append(content, { name: filePath });
+        for (const [path, content] of Object.entries(files)) {
+            archive.append(content, { name: path });
         }
         await archive.finalize();
     }
-    /**
-     * Core logic to gather data and generate all files.
-     */
     static async generateFileContents(projectId) {
         const project = await db_1.default.project.findUnique({
             where: { id: projectId },
             include: {
+                testCases: { orderBy: { sortOrder: 'asc' } },
                 environments: true,
                 workflows: {
                     include: {
                         testCases: {
                             include: { testCase: true },
-                            orderBy: { sortOrder: 'asc' }
-                        }
-                    }
+                            orderBy: { sortOrder: 'asc' },
+                        },
+                    },
                 },
-                testCases: true
-            }
+                sharedMethods: true,
+            },
         });
         if (!project)
             throw new Error('Project not found');
-        const files = {};
-        // 1. Package.json
-        files['package.json'] = JSON.stringify({
-            name: project.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase(),
-            version: "1.0.0",
-            description: project.description || "Generated Playwright API Automation Project",
-            scripts: {
-                "test": "playwright test",
-                "test:ui": "playwright test --ui",
-                "test:report": "playwright show-report"
-            },
-            devDependencies: {
-                "@playwright/test": "^1.42.0",
-                "@types/node": "^20.0.0"
+        const sharedMethods = project.sharedMethods.map((m) => ({
+            id: m.id,
+            name: m.name,
+            uiSteps: m.uiSteps,
+        }));
+        const workflowTcIds = new Set(project.workflows.flatMap((w) => w.testCases.map((wtc) => wtc.testCaseId)));
+        const standaloneTcs = project.testCases.filter((tc) => !workflowTcIds.has(tc.id));
+        const standaloneApiTcs = standaloneTcs.filter((tc) => tc.testType !== 'UI' && tc.method !== 'UI');
+        const standaloneUiTcs = standaloneTcs.filter((tc) => tc.testType === 'UI' || tc.method === 'UI');
+        const workflowSpecs = project.workflows.filter((w) => w.testCases.length > 0);
+        if (standaloneApiTcs.length === 0 &&
+            standaloneUiTcs.length === 0 &&
+            workflowSpecs.length === 0) {
+            throw new Error('No test cases or workflows to export. Add tests before downloading.');
+        }
+        const allUiTcs = project.testCases.filter((tc) => tc.testType === 'UI' || tc.method === 'UI');
+        let loginSelectors = {};
+        let dashboardSelectors = {};
+        for (const tc of allUiTcs) {
+            const sels = (0, framework_scaffold_1.extractSelectorsFromUiSteps)(tc.uiSteps);
+            const folder = (0, framework_scaffold_1.inferFeatureFolder)(tc);
+            if (folder === 'login')
+                loginSelectors = { ...loginSelectors, ...sels };
+            if (folder === 'dashboard')
+                dashboardSelectors = { ...dashboardSelectors, ...sels };
+        }
+        const files = (0, framework_scaffold_1.buildFrameworkScaffold)({
+            projectName: project.name,
+            baseUrl: project.baseUrl,
+            variables: parseJson(project.variables, {}),
+            defaultHeaders: parseJson(project.defaultHeaders, {}),
+            hasUi: allUiTcs.length > 0,
+            hasApi: project.testCases.some((tc) => tc.testType !== 'UI' && tc.method !== 'UI'),
+            loginSelectors,
+            dashboardSelectors,
+        });
+        const usedSpecPaths = new Set();
+        const addSpec = (folder, fileName, content) => {
+            let path = `playwright-framework/tests/${folder}/${fileName}`;
+            if (usedSpecPaths.has(path)) {
+                const base = fileName.replace(/\.spec\.ts$/, '');
+                let n = 2;
+                while (usedSpecPaths.has(`playwright-framework/tests/${folder}/${base}-${n}.spec.ts`))
+                    n++;
+                path = `playwright-framework/tests/${folder}/${base}-${n}.spec.ts`;
             }
-        }, null, 2);
-        // 2. Playwright Config
-        // If environments exist, we can setup projects in playwright.config.ts
-        let projectsConfig = `[
-      {
-        name: 'Default Environment',
-        use: {
-          baseURL: '${project.baseUrl}'
+            usedSpecPaths.add(path);
+            files[path] = content;
+        };
+        for (const tc of standaloneApiTcs) {
+            const folder = (0, framework_scaffold_1.inferFeatureFolder)(tc);
+            const fileName = (0, framework_scaffold_1.inferSpecFileName)(tc);
+            addSpec(folder, fileName, playwright_generator_1.PlaywrightGenerator.generateSpec('export', project, null, [tc], sharedMethods));
         }
-      }
-    ]`;
-        if (project.environments.length > 0) {
-            projectsConfig = `[\n` + project.environments.map(env => `      {
-        name: '${env.name.replace(/'/g, "\\'")}',
-        use: {
-          baseURL: '${env.baseUrl}'
+        for (const tc of standaloneUiTcs) {
+            const folder = (0, framework_scaffold_1.inferFeatureFolder)(tc);
+            const fileName = (0, framework_scaffold_1.inferSpecFileName)(tc);
+            addSpec(folder, fileName, playwright_generator_1.PlaywrightGenerator.generateSpec('export', project, null, [tc], sharedMethods));
         }
-      }`).join(',\n') + `\n    ]`;
-        }
-        files['playwright.config.ts'] = `import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './tests',
-  fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: 1, // Enforce serial execution for variable passing
-  reporter: 'html',
-  use: {
-    trace: 'on-first-retry',
-  },
-  projects: ${projectsConfig}
-});
-`;
-        // 3. Readme
-        files['README.md'] = `# ${project.name}
-
-${project.description || 'Generated Playwright API Automation Project'}
-
-## Setup
-1. Run \`npm install\` to install dependencies.
-2. Run \`npx playwright install\` if you haven't installed playwright browsers before (not strictly needed for API testing, but good practice).
-
-## Running Tests
-- Run all tests: \`npm test\`
-- Run a specific environment: \`npx playwright test --project="Environment Name"\`
-- View report: \`npm run test:report\`
-`;
-        // 4. Generate Workflow Tests. Workflows can contain API and UI steps, so
-        // they are grouped separately from standalone API/UI tests.
-        for (const workflow of project.workflows) {
-            if (workflow.testCases.length === 0)
-                continue;
-            const tcs = workflow.testCases.map(wtc => wtc.testCase);
-            const specContent = playwright_generator_1.PlaywrightGenerator.generateSpec(workflow.id, project, null, // BaseUrl handled by config, but headers/vars will be default
-            tcs);
-            const safeName = workflow.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-            files[`tests/workflows/${safeName}.spec.ts`] = specContent;
-        }
-        // 5. Generate Standalone Tests (for test cases not in any workflow)
-        const workflowTcIds = new Set(project.workflows.flatMap(w => w.testCases.map(wtc => wtc.testCaseId)));
-        const standaloneTcs = project.testCases.filter(tc => !workflowTcIds.has(tc.id));
-        const standaloneApiTcs = standaloneTcs.filter(tc => tc.testType !== 'UI' && tc.method !== 'UI');
-        const standaloneUiTcs = standaloneTcs.filter(tc => tc.testType === 'UI' || tc.method === 'UI');
-        if (standaloneApiTcs.length > 0) {
-            const specContent = playwright_generator_1.PlaywrightGenerator.generateSpec('standalone-api', project, null, standaloneApiTcs);
-            files['tests/api/standalone_api.spec.ts'] = specContent;
-        }
-        if (standaloneUiTcs.length > 0) {
-            const specContent = playwright_generator_1.PlaywrightGenerator.generateSpec('standalone-ui', project, null, standaloneUiTcs);
-            files['tests/ui/standalone_ui.spec.ts'] = specContent;
+        for (const wf of workflowSpecs) {
+            const wfTestCases = wf.testCases.map((wtc) => wtc.testCase);
+            const folder = wfTestCases.every((tc) => tc.testType !== 'UI' && tc.method !== 'UI')
+                ? 'api'
+                : (0, framework_scaffold_1.inferFeatureFolder)(wfTestCases[0]);
+            addSpec(folder, `${slugify(wf.name)}.spec.ts`, playwright_generator_1.PlaywrightGenerator.generateSpec('export', project, null, wfTestCases, sharedMethods));
         }
         return files;
     }

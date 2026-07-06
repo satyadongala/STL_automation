@@ -6,7 +6,7 @@ import { ensurePlaywrightBrowsersBackground } from './services/playwright-setup'
 
 dotenv.config();
 
-const port = process.env.PORT || 5001;
+const port = Number(process.env.PORT) || 5001;
 
 // Create HTTP server
 const server = http.createServer(app);

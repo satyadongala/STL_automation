@@ -64,9 +64,13 @@ function buildUrl(baseUrl, rawPath, vars) {
     const path = resolveVariables(rawPath, vars);
     if (/^https?:\/\//i.test(path))
         return path;
-    return baseUrl.endsWith('/') || path.startsWith('/')
-        ? `${baseUrl.replace(/\/$/, '')}${path}`
-        : `${baseUrl}/${path}`;
+    const base = baseUrl.replace(/\/+$/, '');
+    if (!path)
+        return base;
+    if (path.startsWith('?') || path.startsWith('#'))
+        return `${base}${path}`;
+    const segment = path.replace(/^\/+/, '');
+    return segment ? `${base}/${segment}` : base;
 }
 function isJson(str) {
     try {
@@ -83,7 +87,7 @@ function getValueByPath(obj, jsonPath) {
     if (!jsonPath.startsWith('$.'))
         return undefined;
     const normalizedPath = jsonPath.slice(2).replace(/\[(\w+)\]/g, '.$1');
-    const parts = normalizedPath.split('.');
+    const parts = normalizedPath.split('.').map((p) => p.trim()).filter(Boolean);
     let current = obj;
     for (const part of parts) {
         if (current === null || current === undefined)

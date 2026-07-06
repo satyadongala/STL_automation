@@ -38,8 +38,11 @@ const createTestCase = async (req, res) => {
     try {
         const { projectId, testType, name, description, method, path, headers, queryParams, body, assertions, variablesToExtract, uiSteps, sortOrder } = req.body;
         const normalizedTestType = testType === 'UI' ? 'UI' : 'API';
-        if (!projectId || !name || !path) {
-            return res.status(400).json({ error: 'projectId, name, and path are required' });
+        if (!projectId || !name) {
+            return res.status(400).json({ error: 'projectId and name are required' });
+        }
+        if (normalizedTestType === 'API' && !path) {
+            return res.status(400).json({ error: 'path is required for API test cases' });
         }
         if (normalizedTestType === 'API' && !method) {
             return res.status(400).json({ error: 'method is required for API test cases' });
@@ -51,7 +54,7 @@ const createTestCase = async (req, res) => {
                 name,
                 description,
                 method: normalizedTestType === 'UI' ? 'UI' : method,
-                path,
+                path: path ?? '',
                 headers: headers ? JSON.stringify(headers) : '{}',
                 queryParams: queryParams ? JSON.stringify(queryParams) : '{}',
                 body: body || null,
@@ -80,7 +83,7 @@ const updateTestCase = async (req, res) => {
                 name,
                 description,
                 method: normalizedTestType === 'UI' ? 'UI' : method,
-                path,
+                path: path ?? '',
                 headers: headers ? JSON.stringify(headers) : undefined,
                 queryParams: queryParams ? JSON.stringify(queryParams) : undefined,
                 body: body !== undefined ? body : undefined,

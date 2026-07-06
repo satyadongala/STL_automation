@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProject = exports.updateProject = exports.createProject = exports.getProjectById = exports.getProjects = void 0;
 const db_1 = __importDefault(require("../db"));
+const playwright_setup_1 = require("../services/playwright-setup");
 const getProjects = async (req, res) => {
     try {
         const projects = await db_1.default.project.findMany({
@@ -50,6 +51,9 @@ const createProject = async (req, res) => {
                 variables: variables ? JSON.stringify(variables) : '{}'
             }
         });
+        if (normalizedProjectType === 'UI') {
+            (0, playwright_setup_1.ensurePlaywrightBrowsersBackground)();
+        }
         res.status(201).json(project);
     }
     catch (err) {

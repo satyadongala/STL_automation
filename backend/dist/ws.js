@@ -2,9 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wsManager = void 0;
 const ws_1 = require("ws");
+const MAX_BUFFER_CHARS = 500_000;
 class WebSocketManager {
     wss = null;
     clients = new Map();
+    logBuffers = new Map();
+    statusBuffers = new Map();
     init(server) {
         this.wss = new ws_1.WebSocketServer({ server });
         this.wss.on('connection', (ws, req) => {
@@ -18,6 +21,15 @@ class WebSocketManager {
                 this.clients.set(runId, new Set());
             }
             this.clients.get(runId).add(ws);
+            // Replay buffered logs/status so late-connecting clients still see output
+            const bufferedLogs = this.logBuffers.get(runId);
+            if (bufferedLogs) {
+                ws.send(JSON.stringify({ type: 'LOG', data: bufferedLogs }));
+            }
+            const bufferedStatus = this.statusBuffers.get(runId);
+            if (bufferedStatus) {
+                ws.send(JSON.stringify({ type: 'STATUS', data: bufferedStatus }));
+            }
             ws.on('close', () => {
                 const runClients = this.clients.get(runId);
                 if (runClients) {
@@ -29,11 +41,23 @@ class WebSocketManager {
             });
         });
     }
+    appendLogBuffer(runId, log) {
+        const prev = this.logBuffers.get(runId) || '';
+        const next = prev + log;
+        this.logBuffers.set(runId, next.length > MAX_BUFFER_CHARS ? next.slice(-MAX_BUFFER_CHARS) : next);
+    }
+    clearRun(runId) {
+        this.logBuffers.delete(runId);
+        this.statusBuffers.delete(runId);
+        this.clients.delete(runId);
+    }
     streamLog(runId, log) {
+        const clean = log.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
+        this.appendLogBuffer(runId, clean);
         const runClients = this.clients.get(runId);
         if (!runClients)
             return;
-        const message = JSON.stringify({ type: 'LOG', data: log });
+        const message = JSON.stringify({ type: 'LOG', data: clean });
         runClients.forEach((client) => {
             if (client.readyState === ws_1.WebSocket.OPEN) {
                 client.send(message);
@@ -41,6 +65,7 @@ class WebSocketManager {
         });
     }
     streamStatus(runId, status) {
+        this.statusBuffers.set(runId, status);
         const runClients = this.clients.get(runId);
         if (!runClients)
             return;

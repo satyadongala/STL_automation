@@ -42,6 +42,10 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const db_1 = __importDefault(require("../db"));
 const playwright_generator_1 = require("./playwright-generator");
+const playwright_setup_1 = require("./playwright-setup");
+const allure_report_service_1 = require("./allure-report.service");
+const ws_1 = require("../ws");
+const stripAnsi = (text) => text.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 class PlaywrightRunner {
     static activeProcesses = new Map();
     static async execute(options) {
@@ -52,6 +56,10 @@ class PlaywrightRunner {
         }
         const specPath = path.join(tempDir, `run_${runId}.spec.ts`);
         const reportPath = path.join(tempDir, `report_${runId}.json`);
+        const configPath = path.join(tempDir, `playwright.config.${runId}.ts`);
+        const htmlReportDir = path.join(process.cwd(), 'reports', 'html', runId);
+        const allureResultsDir = path.join(process.cwd(), 'reports', 'allure-results', runId);
+        const allureReportDir = path.join(process.cwd(), 'reports', 'allure', runId);
         try {
             // 1. Fetch project and environment details
             const project = await db_1.default.project.findUnique({
@@ -90,6 +98,11 @@ class PlaywrightRunner {
             if (testCases.length === 0) {
                 throw new Error('No test cases found for execution');
             }
+            const needsBrowser = project.projectType === 'UI' ||
+                testCases.some((tc) => tc.testType === 'UI' || tc.method === 'UI');
+            if (needsBrowser) {
+                await (0, playwright_setup_1.ensurePlaywrightBrowsers)(onLog);
+            }
             // 3. Generate spec file content
             const sharedMethods = await db_1.default.sharedMethod.findMany({
                 where: { projectId }
@@ -109,13 +122,27 @@ class PlaywrightRunner {
                 onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
                 onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);
             }
-            // 5. Prepare execution arguments
+            // 5. Prepare per-run Playwright config (list + json + html + allure reporters)
+            fs.mkdirSync(htmlReportDir, { recursive: true });
+            fs.mkdirSync(allureResultsDir, { recursive: true });
+            const configContent = `import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [
+    ['list'],
+    ['json', { outputFile: ${JSON.stringify(reportPath)} }],
+    ['html', { outputFolder: ${JSON.stringify(htmlReportDir)}, open: 'never' }],
+    ['allure-playwright', { resultsDir: ${JSON.stringify(allureResultsDir)}, detail: true, suiteTitle: true }],
+  ],
+});
+`;
+            fs.writeFileSync(configPath, configContent);
             const args = [
                 'playwright',
                 'test',
                 specPath,
-                '--reporter=list,json,html',
-                `--workers=${workers && workers > 0 ? workers : 1}`
+                `--config=${configPath}`,
+                `--workers=${workers && workers > 0 ? workers : 1}`,
             ];
             if (headed) {
                 args.push('--headed');
@@ -131,27 +158,25 @@ class PlaywrightRunner {
                 const idsGrep = testCaseIds.join('|');
                 args.push('--grep', idsGrep);
             }
-            const htmlReportDir = path.join(process.cwd(), 'reports', 'html', runId);
-            // Set environment variable for Playwright JSON output path
             const runEnv = {
                 ...process.env,
-                PLAYWRIGHT_JSON_OUTPUT_NAME: reportPath,
-                PLAYWRIGHT_HTML_REPORT: htmlReportDir,
-                FORCE_COLOR: '1' // Force color outputs in logs
+                NO_COLOR: '1',
+                TERM: 'dumb',
             };
+            delete runEnv.FORCE_COLOR;
             const startTime = Date.now();
             // 6. Spawn Playwright Process
             const child = (0, child_process_1.spawn)('npx', args, { env: runEnv });
             this.activeProcesses.set(runId, child);
             let accumulatedLogs = '';
             child.stdout.on('data', (data) => {
-                const str = data.toString();
+                const str = stripAnsi(data.toString());
                 accumulatedLogs += str;
                 if (onLog)
                     onLog(str);
             });
             child.stderr.on('data', (data) => {
-                const str = data.toString();
+                const str = stripAnsi(data.toString());
                 accumulatedLogs += str;
                 if (onLog)
                     onLog(str);
@@ -303,6 +328,9 @@ class PlaywrightRunner {
                     if (onLog) {
                         onLog(`[SYS] Execution analysis complete. Passed: ${passedCount}, Failed: ${failedCount}.\n`);
                     }
+                    await (0, allure_report_service_1.generateAllureReport)(allureResultsDir, allureReportDir, onLog);
+                    // ponytail: allow WS buffer cleanup after clients had time to read final status
+                    setTimeout(() => ws_1.wsManager.clearRun(runId), 60_000);
                 }
                 catch (dbErr) {
                     if (onLog)
@@ -321,6 +349,8 @@ class PlaywrightRunner {
                         fs.unlinkSync(specPath);
                     if (fs.existsSync(reportPath))
                         fs.unlinkSync(reportPath);
+                    if (fs.existsSync(configPath))
+                        fs.unlinkSync(configPath);
                 }
             });
         }
@@ -339,6 +369,8 @@ class PlaywrightRunner {
                 fs.unlinkSync(specPath);
             if (fs.existsSync(reportPath))
                 fs.unlinkSync(reportPath);
+            if (fs.existsSync(configPath))
+                fs.unlinkSync(configPath);
         }
     }
     static kill(runId) {
