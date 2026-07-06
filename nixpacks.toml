@@ -1,0 +1,23 @@
+# Coolify defaults to Nixpacks — this monorepo needs subfolder installs + dev deps.
+# Prefer Build Pack → Dockerfile for Playwright UI tests (official browser image).
+
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
+NIXPACKS_NODE_VERSION = "22"
+
+[phases.install]
+cmds = [
+  "npm ci --prefix backend",
+  "npm ci --prefix frontend",
+]
+
+[phases.build]
+cmds = [
+  "npm run prisma:generate --prefix backend",
+  "npm run build --prefix backend",
+  "VITE_API_URL=/api npm run build --prefix frontend",
+  "mkdir -p backend/public && cp -r frontend/dist/. backend/public/",
+]
+
+[start]
+cmd = "cd backend && mkdir -p ../data reports/html reports/allure && npx prisma migrate deploy && node dist/index.js"

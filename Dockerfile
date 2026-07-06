@@ -1,3 +1,4 @@
+# Coolify: set Build Pack → Dockerfile (not Nixpacks). Port 5001. Mount /data for SQLite.
 # ── Stage 1: build frontend ──────────────────────────────────────────────────
 FROM node:22-bookworm-slim AS frontend-build
 WORKDIR /app/frontend

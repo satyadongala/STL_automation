@@ -8,9 +8,13 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="w-64 border-r border-brand-200/60 bg-sidebar-bg glass-panel flex flex-col h-screen sticky top-0">
-      <div className="p-6 border-b border-brand-200/50">
+      <div className="p-4 border-b border-brand-200/50">
         <Link to="/" className="inline-block">
-          <h1 className="font-extrabold text-2xl tracking-tight text-gradient-aqua">STL</h1>
+          <img
+            src="/logo.jpg"
+            alt="Satya Tech Lab"
+            className="h-14 w-auto object-contain"
+          />
         </Link>
       </div>
 
