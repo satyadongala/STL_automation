@@ -8,7 +8,7 @@ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 
 [phases.install]
 cmds = [
-  "npm ci --prefix backend",
+  "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --prefix backend",
   "npm ci --prefix frontend",
 ]
 
@@ -18,7 +18,10 @@ cmds = [
   "npm run build --prefix backend",
   "VITE_API_URL=/api npm run build --prefix frontend",
   "mkdir -p backend/public && cp -r frontend/dist/. backend/public/",
+  "rm -rf frontend/node_modules frontend/src",
+  "npm prune --omit=dev --prefix backend",
+  "rm -rf backend/src",
 ]
 
 [start]
-cmd = "cd backend && mkdir -p ../data reports/html reports/allure && npx prisma migrate deploy && node dist/index.js"
+cmd = "cd backend && mkdir -p /data reports/html reports/allure && npx prisma migrate deploy && node dist/index.js"
