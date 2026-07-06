@@ -3,7 +3,7 @@
 
 [variables]
 NPM_CONFIG_PRODUCTION = "false"
-NIXPACKS_NODE_VERSION = "24"
+NIXPACKS_NODE_VERSION = "22"
 
 [phases.install]
 cmds = [
@@ -15,7 +15,7 @@ cmds = [
 cmds = [
   "npm run prisma:generate --prefix backend",
   "npm run build --prefix backend",
-  "VITE_API_URL=/api npm run build --prefix frontend",
+  "VITE_API_URL=/api npm exec --prefix frontend vite build",
   "mkdir -p backend/public && cp -r frontend/dist/. backend/public/",
 ]
 
