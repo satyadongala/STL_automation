@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const shared_method_controller_1 = require("../controllers/shared-method.controller");
+const router = (0, express_1.Router)();
+router.get('/projects/:projectId/shared-methods', shared_method_controller_1.getProjectSharedMethods);
+router.post('/projects/:projectId/shared-methods', shared_method_controller_1.createSharedMethod);
+router.get('/shared-methods/:id', shared_method_controller_1.getSharedMethod);
+router.put('/shared-methods/:id', shared_method_controller_1.updateSharedMethod);
+router.delete('/shared-methods/:id', shared_method_controller_1.deleteSharedMethod);
+exports.default = router;

@@ -1,0 +1,3 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","30061","e99a8b08-066b-44b2-8782-e4a20b4831d5:6c60dbd0-8e34-4ab1-93ae-e3830be5aa93:click on PIM","","2026-07-06","broken","2026-07-06","Automation Run e99a8b08-066b-44b2-8782-e4a20b4831d5","run_e99a8b08-066b-44b2-8782-e4a20b4831d5.spec.ts","",""
+"","6356","e99a8b08-066b-44b2-8782-e4a20b4831d5:93e804dd-9bb8-4798-97a0-0f2b0c9cc2c3:Verify the login working or not","","2026-07-06","passed","2026-07-06","Automation Run e99a8b08-066b-44b2-8782-e4a20b4831d5","run_e99a8b08-066b-44b2-8782-e4a20b4831d5.spec.ts","",""

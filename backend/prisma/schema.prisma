@@ -1,0 +1,151 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Project {
+  id             String         @id @default(uuid())
+  projectType    String         @default("API") // API, UI
+  name           String
+  description    String?
+  baseUrl        String
+  defaultHeaders String         @default("{}") // JSON string of default headers
+  variables      String         @default("{}") // JSON string of default variables
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  environments   Environment[]
+  testCases      TestCase[]
+  runs           ExecutionRun[]
+  workflows      Workflow[]
+  sharedMethods  SharedMethod[]
+}
+
+model Environment {
+  id        String         @id @default(uuid())
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  baseUrl   String
+  headers   String         @default("{}") // JSON string override
+  variables String         @default("{}") // JSON string override
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  runs      ExecutionRun[]
+}
+
+model TestCase {
+  id                 String            @id @default(uuid())
+  projectId          String
+  project            Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testType           String            @default("API") // API, UI
+  name               String
+  description        String?
+  method             String            // GET, POST, PUT, DELETE, PATCH
+  path               String            // e.g. /api/users
+  headers            String            @default("{}") // Specific headers
+  queryParams        String            @default("{}") // Query params JSON string
+  body               String?           // Request body content
+  assertions         String            @default("[]") // Array of assertions: status code, body match, path lookup
+  variablesToExtract String            @default("[]") // Array of extraction rules
+  uiSteps            String            @default("[]") // Array of browser automation steps
+  sortOrder          Int               @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  results            ExecutionResult[]
+  workflows          WorkflowTestCase[]
+}
+
+model ExecutionRun {
+  id                           String            @id @default(uuid())
+  projectId                    String
+  project                      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environmentId                String?
+  environment                  Environment?      @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  workflowId                   String?
+  workflow                     Workflow?         @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  status                       String            // PENDING, RUNNING, COMPLETED, FAILED
+  executionMode                String            @default("LINEAR") // LINEAR, WORKFLOW
+  workflowDefinitionSnapshot   String            @default("{}")
+  triggerType                  String            @default("MANUAL") // MANUAL, API
+  startedAt                    DateTime          @default(now())
+  completedAt                  DateTime?
+  summaryPassed                Int               @default(0)
+  summaryFailed                Int               @default(0)
+  summaryTotal                 Int               @default(0)
+  durationMs                   Int               @default(0)
+  rawLogs                      String            @default("") // Playwright execution output logs
+  createdAt                    DateTime          @default(now())
+  results                      ExecutionResult[]
+  spans                        ExecutionSpan[]
+}
+
+model ExecutionSpan {
+  id             String       @id @default(uuid())
+  executionRunId String
+  executionRun   ExecutionRun @relation(fields: [executionRunId], references: [id], onDelete: Cascade)
+  parentSpanId   String?
+  nodeId         String
+  nodeType       String
+  name           String?
+  status         String       // RUNNING, PASSED, FAILED, SKIPPED
+  iteration      Int?
+  startedAt      DateTime     @default(now())
+  completedAt    DateTime?
+  durationMs     Int          @default(0)
+  detail         String       @default("{}")
+  errorMessage   String?
+}
+
+model ExecutionResult {
+  id               String       @id @default(uuid())
+  executionRunId   String
+  executionRun     ExecutionRun @relation(fields: [executionRunId], references: [id], onDelete: Cascade)
+  testCaseId       String
+  testCase         TestCase     @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  status           String       // PASSED, FAILED
+  durationMs       Int          @default(0)
+  requestSent      String       // Saved snapshot of request
+  responseReceived String       // Saved snapshot of response
+  assertionResults String       @default("[]") // Detailed assertion checklist outcome
+  errorMessage     String?
+  createdAt        DateTime     @default(now())
+}
+
+model Workflow {
+  id          String             @id @default(uuid())
+  projectId   String
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  version     Int                @default(1)
+  definition  String             @default("{}") // WorkflowDefinition JSON (control flow)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  testCases   WorkflowTestCase[]
+  runs        ExecutionRun[]
+}
+
+model WorkflowTestCase {
+  id         String   @id @default(uuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  testCaseId String
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  sortOrder  Int      @default(0)
+}
+
+model SharedMethod {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  parameters  String   @default("[]") // JSON array of parameter names
+  uiSteps     String   @default("[]") // JSON array of method steps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

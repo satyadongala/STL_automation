@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const execution_controller_1 = require("../controllers/execution.controller");
+const router = (0, express_1.Router)();
+router.post('/run', execution_controller_1.triggerExecution);
+router.get('/runs', execution_controller_1.getExecutions);
+router.get('/stats', execution_controller_1.getDashboardStats);
+router.get('/runs/:id', execution_controller_1.getExecutionById);
+router.get('/runs/:id/spans', execution_controller_1.getExecutionSpans);
+router.post('/runs/:id/stop', execution_controller_1.stopExecution);
+exports.default = router;

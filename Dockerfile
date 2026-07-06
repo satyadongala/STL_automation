@@ -1,0 +1,33 @@
+# ── Stage 1: build frontend ──────────────────────────────────────────────────
+FROM node:22-bookworm-slim AS frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+RUN npm run build
+
+# ── Stage 2: production image (Playwright for UI tests) ──────────────────────
+FROM mcr.microsoft.com/playwright:v1.44.1-jammy
+WORKDIR /app
+
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+COPY backend/package*.json ./
+RUN npm ci
+
+COPY backend/ ./
+RUN npx prisma generate && npm run build
+
+COPY --from=frontend-build /app/frontend/dist ./public
+
+ENV NODE_ENV=production
+ENV PORT=5001
+ENV DATABASE_URL=file:/data/dev.db
+
+EXPOSE 5001
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

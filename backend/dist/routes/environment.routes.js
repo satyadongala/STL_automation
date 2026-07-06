@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const environment_controller_1 = require("../controllers/environment.controller");
+const router = (0, express_1.Router)();
+router.get('/', environment_controller_1.getEnvironments);
+router.post('/', environment_controller_1.createEnvironment);
+router.put('/:id', environment_controller_1.updateEnvironment);
+router.delete('/:id', environment_controller_1.deleteEnvironment);
+exports.default = router;
