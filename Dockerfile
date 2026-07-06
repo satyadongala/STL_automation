@@ -29,6 +29,7 @@ ENV DATABASE_URL=file:/data/dev.db
 EXPOSE 5001
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY backend/start.sh ./start.sh
+RUN chmod +x /docker-entrypoint.sh ./start.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

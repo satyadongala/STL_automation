@@ -24,4 +24,4 @@ cmds = [
 ]
 
 [start]
-cmd = "cd backend && mkdir -p /data reports/html reports/allure && npx prisma migrate deploy && node dist/index.js"
+cmd = "chmod +x backend/start.sh && cd backend && ./start.sh"

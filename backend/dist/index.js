@@ -42,6 +42,9 @@ const server_1 = __importDefault(require("./server"));
 const ws_1 = require("./ws");
 const playwright_setup_1 = require("./services/playwright-setup");
 dotenv.config();
+if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = 'file:/data/dev.db';
+}
 const port = Number(process.env.PORT) || 5001;
 // Create HTTP server
 const server = http.createServer(server_1.default);

@@ -6,6 +6,10 @@ import { ensurePlaywrightBrowsersBackground } from './services/playwright-setup'
 
 dotenv.config();
 
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'file:/data/dev.db';
+}
+
 const port = Number(process.env.PORT) || 5001;
 
 // Create HTTP server

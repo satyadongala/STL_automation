@@ -34,13 +34,14 @@ app.get('/health', (req, res) => {
 });
 
 // Serve built frontend (Docker / production)
-const publicDir = path.join(process.cwd(), 'public');
+const publicDir = path.join(__dirname, '..', 'public');
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
+  app.get(/^(?!\/api).*/, (_req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
+} else {
+  console.warn(`[SYS] No frontend at ${publicDir} — API only mode`);
 }
 
 export default app;
