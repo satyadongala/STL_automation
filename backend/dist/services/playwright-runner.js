@@ -45,11 +45,13 @@ const playwright_generator_1 = require("./playwright-generator");
 const playwright_setup_1 = require("./playwright-setup");
 const allure_report_service_1 = require("./allure-report.service");
 const ws_1 = require("../ws");
+const headed_1 = require("../utils/headed");
 const stripAnsi = (text) => text.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 class PlaywrightRunner {
     static activeProcesses = new Map();
     static async execute(options) {
-        const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed, workers, onLog, onStatusChange } = options;
+        const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed: headedRequested, workers, onLog, onStatusChange } = options;
+        const headed = (0, headed_1.resolveHeaded)(headedRequested);
         const tempDir = path.join(process.cwd(), 'temp_tests');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -118,6 +120,9 @@ class PlaywrightRunner {
                 onStatusChange('RUNNING');
             // Log setup
             if (onLog) {
+                const headedNote = (0, headed_1.headedOverrideNote)(headedRequested);
+                if (headedNote)
+                    onLog(headedNote);
                 onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
                 onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
                 onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);

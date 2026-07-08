@@ -6,6 +6,7 @@ import { PlaywrightGenerator } from './playwright-generator';
 import { ensurePlaywrightBrowsers } from './playwright-setup';
 import { generateAllureReport } from './allure-report.service';
 import { wsManager } from '../ws';
+import { headedOverrideNote, resolveHeaded } from '../utils/headed';
 
 export interface RunOptions {
   runId: string;
@@ -27,7 +28,8 @@ export class PlaywrightRunner {
   private static activeProcesses: Map<string, any> = new Map();
 
   public static async execute(options: RunOptions): Promise<void> {
-    const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed, workers, onLog, onStatusChange } = options;
+    const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed: headedRequested, workers, onLog, onStatusChange } = options;
+    const headed = resolveHeaded(headedRequested);
 
     const tempDir = path.join(process.cwd(), 'temp_tests');
     if (!fs.existsSync(tempDir)) {
@@ -105,6 +107,8 @@ export class PlaywrightRunner {
 
       // Log setup
       if (onLog) {
+        const headedNote = headedOverrideNote(headedRequested);
+        if (headedNote) onLog(headedNote);
         onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
         onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
         onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);

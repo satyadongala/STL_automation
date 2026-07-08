@@ -19,6 +19,7 @@ const trace_reporter_1 = require("./trace-reporter");
 const step_utils_2 = require("./step-utils");
 const workflow_graph_utils_1 = require("./workflow-graph-utils");
 const playwright_setup_1 = require("../services/playwright-setup");
+const headed_1 = require("../utils/headed");
 class LoopGuardError extends Error {
     constructor(message) {
         super(message);
@@ -38,7 +39,8 @@ class WorkflowOrchestrator {
         return false;
     }
     static async execute(options) {
-        const { runId, projectId, environmentId, workflowId, headed, onLog, onStatusChange } = options;
+        const { runId, projectId, environmentId, workflowId, headed: headedRequested, onLog, onStatusChange } = options;
+        const headed = (0, headed_1.resolveHeaded)(headedRequested);
         const abortController = new AbortController();
         this.activeRuns.set(runId, abortController);
         const trace = new trace_reporter_1.TraceReporter(runId, onLog);
@@ -97,6 +99,9 @@ class WorkflowOrchestrator {
             trace.log(`[SYS] Project type: ${project.projectType || 'API'}\n`);
             trace.log(`[SYS] Environment: ${environment?.name || 'Default'}\n`);
             if (needsBrowser) {
+                const headedNote = (0, headed_1.headedOverrideNote)(headedRequested);
+                if (headedNote)
+                    trace.log(headedNote);
                 trace.log(`[SYS] Browser: ${headed ? 'headed' : 'headless'}\n`);
             }
             apiContext = await test_1.request.newContext({ baseURL: baseUrl });

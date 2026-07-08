@@ -22,6 +22,7 @@ import type {
 import { coerceNumber } from './step-utils';
 import { collectTestCaseIds, definitionHasUiSteps } from './workflow-graph-utils';
 import { ensurePlaywrightBrowsers } from '../services/playwright-setup';
+import { headedOverrideNote, resolveHeaded } from '../utils/headed';
 
 export interface WorkflowRunOptions {
   runId: string;
@@ -54,7 +55,8 @@ export class WorkflowOrchestrator {
   }
 
   public static async execute(options: WorkflowRunOptions): Promise<void> {
-    const { runId, projectId, environmentId, workflowId, headed, onLog, onStatusChange } = options;
+    const { runId, projectId, environmentId, workflowId, headed: headedRequested, onLog, onStatusChange } = options;
+    const headed = resolveHeaded(headedRequested);
     const abortController = new AbortController();
     this.activeRuns.set(runId, abortController);
 
@@ -119,6 +121,8 @@ export class WorkflowOrchestrator {
       trace.log(`[SYS] Project type: ${project.projectType || 'API'}\n`);
       trace.log(`[SYS] Environment: ${environment?.name || 'Default'}\n`);
       if (needsBrowser) {
+        const headedNote = headedOverrideNote(headedRequested);
+        if (headedNote) trace.log(headedNote);
         trace.log(`[SYS] Browser: ${headed ? 'headed' : 'headless'}\n`);
       }
 
