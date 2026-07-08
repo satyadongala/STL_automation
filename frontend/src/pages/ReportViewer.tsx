@@ -216,6 +216,7 @@ export const ReportViewer: React.FC = () => {
             {run.status}
           </div>
         </div>
+
       </div>
 
       {/* ── Main Split Pane ── */}

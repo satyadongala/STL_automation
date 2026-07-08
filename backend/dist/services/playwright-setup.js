@@ -59,25 +59,40 @@ function runInstall(onLog) {
         log('[SYS] Installing Playwright Chromium browser (one-time setup)...\n');
         const cli = path.join(process.cwd(), 'node_modules', 'playwright', 'cli.js');
         const cmd = fs.existsSync(cli) ? process.execPath : 'npx';
-        const args = fs.existsSync(cli)
+        const installDepsArgs = fs.existsSync(cli)
+            ? [cli, 'install-deps', 'chromium']
+            : ['playwright', 'install-deps', 'chromium'];
+        const installArgs = fs.existsSync(cli)
             ? [cli, 'install', 'chromium']
             : ['playwright', 'install', 'chromium'];
-        const child = (0, child_process_1.spawn)(cmd, args, {
+        const child = (0, child_process_1.spawn)(cmd, installDepsArgs, {
             cwd: process.cwd(),
             env: { ...process.env, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0' },
+        });
+        child.on('close', (depsCode) => {
+            if (depsCode !== 0) {
+                log('[SYS] install-deps skipped or unavailable (ok on official Playwright Docker image)\n');
+            }
+            const install = (0, child_process_1.spawn)(cmd, installArgs, {
+                cwd: process.cwd(),
+                env: { ...process.env, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0' },
+            });
+            install.stdout.on('data', (d) => log(d.toString()));
+            install.stderr.on('data', (d) => log(d.toString()));
+            install.on('error', reject);
+            install.on('close', (code) => {
+                if (code === 0) {
+                    log('[SYS] Playwright Chromium is ready.\n');
+                    resolve();
+                }
+                else {
+                    reject(new Error(`playwright install exited with code ${code}`));
+                }
+            });
         });
         child.stdout.on('data', (d) => log(d.toString()));
         child.stderr.on('data', (d) => log(d.toString()));
         child.on('error', reject);
-        child.on('close', (code) => {
-            if (code === 0) {
-                log('[SYS] Playwright Chromium is ready.\n');
-                resolve();
-            }
-            else {
-                reject(new Error(`playwright install exited with code ${code}`));
-            }
-        });
     });
 }
 /** ponytail: single-flight install; chromium only (UI + request fixtures) */

@@ -1,0 +1,20 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const ai_controller_1 = require("../controllers/ai.controller");
+const router = (0, express_1.Router)();
+router.get('/status', ai_controller_1.getAiStatus);
+router.post('/generate-test', ai_controller_1.postGenerateTest);
+router.post('/agent', ai_controller_1.postAgent);
+router.post('/explain-run', ai_controller_1.postExplainRun);
+router.post('/execute-tool', ai_controller_1.postExecuteTool);
+// Tool HTTP API (used by stl-automation-mcp server)
+router.get('/tools/schema', ai_controller_1.toolGetSchema);
+router.get('/tools/projects/:projectId/context', ai_controller_1.toolGetProjectContext);
+router.get('/tools/projects/:projectId/test-cases', ai_controller_1.toolListTestCases);
+router.get('/tools/projects/:projectId/framework-preview', ai_controller_1.toolFrameworkPreview);
+router.post('/tools/test-cases/api', ai_controller_1.toolCreateApiTest);
+router.post('/tools/test-cases/ui', ai_controller_1.toolCreateUiTest);
+router.post('/tools/executions/run', ai_controller_1.toolTriggerRun);
+router.get('/tools/executions/:runId', ai_controller_1.toolExecutionSummary);
+exports.default = router;
