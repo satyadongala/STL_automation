@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
-import { ensurePlaywrightBrowsersBackground } from '../services/playwright-setup';
+import { initPlaywrightProject, removeProjectWorkspace } from '../services/playwright-project-init';
 
 export const getProjects = async (req: Request, res: Response) => {
   try {
@@ -43,12 +43,27 @@ export const createProject = async (req: Request, res: Response) => {
         description,
         baseUrl,
         defaultHeaders: defaultHeaders ? JSON.stringify(defaultHeaders) : '{}',
-        variables: variables ? JSON.stringify(variables) : '{}'
+        variables: variables ? JSON.stringify(variables) : '{}',
+        playwrightReady: false,
       }
     });
 
     if (normalizedProjectType === 'UI') {
-      ensurePlaywrightBrowsersBackground();
+      try {
+        console.log(`[SYS] Initializing Playwright for UI project ${project.id}...`);
+        await initPlaywrightProject(project.id, { baseUrl, name });
+        const ready = await prisma.project.update({
+          where: { id: project.id },
+          data: { playwrightReady: true },
+        });
+        return res.status(201).json(ready);
+      } catch (err: any) {
+        removeProjectWorkspace(project.id);
+        await prisma.project.delete({ where: { id: project.id } });
+        return res.status(500).json({
+          error: `Playwright init failed (npm init playwright@latest): ${err.message}`,
+        });
+      }
     }
 
     res.status(201).json(project);
@@ -84,6 +99,7 @@ export const deleteProject = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.project.delete({ where: { id } });
+    removeProjectWorkspace(id);
     res.json({ message: 'Project deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

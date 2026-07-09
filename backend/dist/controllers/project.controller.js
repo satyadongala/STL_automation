@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProject = exports.updateProject = exports.createProject = exports.getProjectById = exports.getProjects = void 0;
 const db_1 = __importDefault(require("../db"));
-const playwright_setup_1 = require("../services/playwright-setup");
+const playwright_project_init_1 = require("../services/playwright-project-init");
 const getProjects = async (req, res) => {
     try {
         const projects = await db_1.default.project.findMany({
@@ -48,11 +48,27 @@ const createProject = async (req, res) => {
                 description,
                 baseUrl,
                 defaultHeaders: defaultHeaders ? JSON.stringify(defaultHeaders) : '{}',
-                variables: variables ? JSON.stringify(variables) : '{}'
+                variables: variables ? JSON.stringify(variables) : '{}',
+                playwrightReady: false,
             }
         });
         if (normalizedProjectType === 'UI') {
-            (0, playwright_setup_1.ensurePlaywrightBrowsersBackground)();
+            try {
+                console.log(`[SYS] Initializing Playwright for UI project ${project.id}...`);
+                await (0, playwright_project_init_1.initPlaywrightProject)(project.id, { baseUrl, name });
+                const ready = await db_1.default.project.update({
+                    where: { id: project.id },
+                    data: { playwrightReady: true },
+                });
+                return res.status(201).json(ready);
+            }
+            catch (err) {
+                (0, playwright_project_init_1.removeProjectWorkspace)(project.id);
+                await db_1.default.project.delete({ where: { id: project.id } });
+                return res.status(500).json({
+                    error: `Playwright init failed (npm init playwright@latest): ${err.message}`,
+                });
+            }
         }
         res.status(201).json(project);
     }
@@ -88,6 +104,7 @@ const deleteProject = async (req, res) => {
     try {
         const { id } = req.params;
         await db_1.default.project.delete({ where: { id } });
+        (0, playwright_project_init_1.removeProjectWorkspace)(id);
         res.json({ message: 'Project deleted successfully' });
     }
     catch (err) {

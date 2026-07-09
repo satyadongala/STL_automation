@@ -27,6 +27,7 @@ COPY --from=frontend-build /app/frontend/dist ./public
 ENV NODE_ENV=production
 ENV PORT=5001
 ENV DATABASE_URL=file:/data/dev.db
+ENV PROJECT_WORKSPACES_DIR=/data/project_workspaces
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 

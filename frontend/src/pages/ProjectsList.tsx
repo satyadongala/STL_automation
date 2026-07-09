@@ -17,6 +17,7 @@ export const ProjectsList: React.FC = () => {
   const [baseUrl, setBaseUrl] = useState('');
   const [headers, setHeaders] = useState<{ key: string; value: string }[]>([]);
   const [variables, setVariables] = useState<{ key: string; value: string }[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const navigate = useNavigate();
 
@@ -101,6 +102,7 @@ export const ProjectsList: React.FC = () => {
       ? api.updateProject(editingProject.id, payload)
       : api.createProject(payload);
 
+    setSaving(true);
     action
       .then(() => {
         addToast(`Project successfully ${editingProject ? 'updated' : 'created'}`);
@@ -108,8 +110,9 @@ export const ProjectsList: React.FC = () => {
         fetchProjects();
       })
       .catch(err => {
-        addToast(err.message, 'error');
-      });
+        addToast(err.response?.data?.error || err.message, 'error');
+      })
+      .finally(() => setSaving(false));
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
@@ -333,7 +336,8 @@ export const ProjectsList: React.FC = () => {
                     />
                     {projectType === 'UI' && (
                       <p className="text-xs text-text-muted mt-1.5">
-                        The web app URL used as the starting point for UI test cases.
+                        The web app URL used as the starting point for UI test cases. Creating a UI project runs{' '}
+                        <code className="text-[10px]">npm init playwright@latest</code> (may take 1–2 minutes).
                       </p>
                     )}
                   </div>
@@ -444,10 +448,17 @@ export const ProjectsList: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl btn-primary font-semibold text-sm shadow-md hover:shadow-brand-500/10 transition-all"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl btn-primary font-semibold text-sm shadow-md hover:shadow-brand-500/10 transition-all disabled:opacity-60"
                 >
                   <Check className="w-4 h-4" />
-                  <span>{editingProject ? 'Save Changes' : 'Create Project'}</span>
+                  <span>
+                    {saving && !editingProject && projectType === 'UI'
+                      ? 'Initializing Playwright…'
+                      : editingProject
+                        ? 'Save Changes'
+                        : 'Create Project'}
+                  </span>
                 </button>
               </div>
 

@@ -14,7 +14,8 @@ export const api = {
   // Projects
   getProjects: () => apiClient.get('/projects').then(res => res.data),
   getProject: (id: string) => apiClient.get(`/projects/${id}`).then(res => res.data),
-  createProject: (data: any) => apiClient.post('/projects', data).then(res => res.data),
+  createProject: (data: any) =>
+    apiClient.post('/projects', data, { timeout: 300000 }).then((res) => res.data),
   updateProject: (id: string, data: any) => apiClient.put(`/projects/${id}`, data).then(res => res.data),
   deleteProject: (id: string) => apiClient.delete(`/projects/${id}`).then(res => res.data),
 

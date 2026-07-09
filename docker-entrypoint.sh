@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
-mkdir -p /data reports/html reports/allure-results reports/allure temp_tests public
+mkdir -p /data reports/html reports/allure-results reports/allure temp_tests public project_workspaces
 export DATABASE_URL="${DATABASE_URL:-file:/data/dev.db}"
+export PROJECT_WORKSPACES_DIR="${PROJECT_WORKSPACES_DIR:-/data/project_workspaces}"
 
 # ── Virtual display (Xvfb) for headed Playwright in Docker ─────────────────
 XVFB_DISPLAY="${XVFB_DISPLAY:-:99}"
