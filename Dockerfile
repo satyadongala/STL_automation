@@ -41,14 +41,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html \
     && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 5001
+EXPOSE 5001 3000
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY backend/start.sh ./start.sh
-RUN chmod +x /docker-entrypoint.sh ./start.sh
+COPY healthcheck.sh /healthcheck.sh
+RUN chmod +x /docker-entrypoint.sh ./start.sh /healthcheck.sh
 
-# Health check (Coolify: set path to /health or /api/health, port 5001)
+# Uses $PORT at runtime (Coolify often sets PORT=3000)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:5001/health || exit 1
+  CMD /healthcheck.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
