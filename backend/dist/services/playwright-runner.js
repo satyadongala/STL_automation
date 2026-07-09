@@ -146,6 +146,7 @@ export default defineConfig({
   timeout: ${uiTimeout},
   expect: { timeout: 15000 },
   use: {
+    headless: ${headed ? 'false' : 'true'},
     navigationTimeout: ${navTimeout},
     actionTimeout: 30000,
     trace: ${headed ? "'on'" : "'retain-on-failure'"},
@@ -188,9 +189,20 @@ export default defineConfig({
                 TERM: 'dumb',
             };
             delete runEnv.FORCE_COLOR;
+            if (headed) {
+                const display = process.env.DISPLAY || (await (0, headed_1.ensureVirtualDisplay)(onLog));
+                if (display) {
+                    runEnv.DISPLAY = display;
+                    if (onLog)
+                        onLog(`[SYS] Chromium DISPLAY=${display}\n`);
+                }
+            }
             const startTime = Date.now();
-            // 6. Spawn Playwright Process (xvfb-run wraps headed runs on Linux — most reliable in Docker)
+            // Use npx directly when DISPLAY is set (same screen as noVNC). xvfb-run -a uses a different display.
             const useXvfb = (0, headed_1.useXvfbRunWrapper)(headed);
+            if (onLog) {
+                onLog(`[SYS] Spawn: ${useXvfb ? 'xvfb-run' : 'npx'}${headed ? ' --headed' : ''}\n`);
+            }
             const spawnCmd = useXvfb ? 'xvfb-run' : 'npx';
             const spawnArgs = useXvfb
                 ? ['-a', '--server-args=-screen 0 1920x1080x24', 'npx', ...args]

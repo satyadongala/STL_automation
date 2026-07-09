@@ -95,8 +95,9 @@ function startXvfb(display, onLog) {
     });
 }
 function resolveHeaded(requested) {
-    return requested === true;
+    return requested === true || requested === 'true';
 }
+/** Only wrap with xvfb-run when no display exists — Docker entrypoint already sets DISPLAY=:99 for noVNC */
 function useXvfbRunWrapper(headed) {
-    return headed && process.platform === 'linux';
+    return headed && process.platform === 'linux' && !process.env.DISPLAY;
 }

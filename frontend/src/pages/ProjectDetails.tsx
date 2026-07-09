@@ -72,14 +72,16 @@ export const ProjectDetails: React.FC = () => {
     );
   }
 
+  const isUiProject = project.projectType === 'UI' || testCases.some((tc) => tc.testType === 'UI');
+
   // Handle single run
   const handleRunTestCase = (testCaseId: string) => {
     api.triggerRun({
       projectId: project.id,
       environmentId: selectedEnvId || null,
       testCaseIds: [testCaseId],
-      headed: project.projectType === 'UI' ? headedMode : undefined,
-      workers: project.projectType === 'UI' ? workersCount : undefined
+      headed: isUiProject ? headedMode : undefined,
+      workers: isUiProject ? workersCount : undefined
     })
       .then(run => {
         addToast('Execution triggered successfully');
@@ -98,8 +100,8 @@ export const ProjectDetails: React.FC = () => {
       projectId: project.id,
       environmentId: selectedEnvId || null,
       testCaseIds: Array.from(selectedTestCaseIds),
-      headed: project.projectType === 'UI' ? headedMode : undefined,
-      workers: project.projectType === 'UI' ? workersCount : undefined
+      headed: isUiProject ? headedMode : undefined,
+      workers: isUiProject ? workersCount : undefined
     })
       .then(run => {
         addToast(`Execution triggered for ${selectedTestCaseIds.size} tests`);
@@ -119,8 +121,8 @@ export const ProjectDetails: React.FC = () => {
       projectId: project.id,
       environmentId: selectedEnvId || null,
       testCaseIds: activeTestCases.map(tc => tc.id),
-      headed: project.projectType === 'UI' ? headedMode : undefined,
-      workers: project.projectType === 'UI' ? workersCount : undefined
+      headed: isUiProject ? headedMode : undefined,
+      workers: isUiProject ? workersCount : undefined
     })
       .then(run => {
         addToast(`Execution triggered for ${activeTestCases.length} tests`);
@@ -296,7 +298,7 @@ export const ProjectDetails: React.FC = () => {
             <span className="text-sm">Export ZIP</span>
           </Link>
           <div className="w-px h-8 bg-brand-100 mx-1"></div>
-          {project.projectType === 'UI' && (
+          {isUiProject && (
             <>
               <div className="flex items-center gap-2 mt-4">
                 <input

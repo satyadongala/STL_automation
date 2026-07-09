@@ -73,10 +73,11 @@ function startXvfb(display: string, onLog?: (msg: string) => void): Promise<stri
   });
 }
 
-export function resolveHeaded(requested?: boolean): boolean {
-  return requested === true;
+export function resolveHeaded(requested?: boolean | string): boolean {
+  return requested === true || requested === 'true';
 }
 
+/** Only wrap with xvfb-run when no display exists — Docker entrypoint already sets DISPLAY=:99 for noVNC */
 export function useXvfbRunWrapper(headed: boolean): boolean {
-  return headed && process.platform === 'linux';
+  return headed && process.platform === 'linux' && !process.env.DISPLAY;
 }

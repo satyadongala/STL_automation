@@ -39,11 +39,12 @@ export const triggerExecution = async (req: Request, res: Response) => {
       workflowDefinition,
       testCaseIds,
       grepPattern,
-      headed,
+      headed: headed === true,
       workers,
       onLog: (logLine) => wsManager.streamLog(run.id, logLine),
       onStatusChange: (status) => wsManager.streamStatus(run.id, status),
     });
+    wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headed === true}\n`);
 
     // Return the run details immediately
     res.status(202).json(run);
