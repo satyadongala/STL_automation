@@ -46,12 +46,16 @@ const playwright_setup_1 = require("./playwright-setup");
 const allure_report_service_1 = require("./allure-report.service");
 const ws_1 = require("../ws");
 const headed_1 = require("../utils/headed");
+const playwright_artifacts_1 = require("../utils/playwright-artifacts");
 const stripAnsi = (text) => text.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 class PlaywrightRunner {
     static activeProcesses = new Map();
     static async execute(options) {
-        const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed: headedRequested, workers, onLog, onStatusChange } = options;
+        const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed: headedRequested, workers, video: videoRequested, trace: traceRequested, screenshot: screenshotRequested, onLog, onStatusChange } = options;
         const headed = (0, headed_1.resolveHeaded)(headedRequested);
+        const videoMode = (0, playwright_artifacts_1.resolveArtifactMode)(videoRequested, headed ? 'on' : 'off');
+        const traceMode = (0, playwright_artifacts_1.resolveArtifactMode)(traceRequested, headed ? 'on' : 'failed');
+        const screenshotMode = (0, playwright_artifacts_1.resolveArtifactMode)(screenshotRequested, headed ? 'on' : 'failed');
         const tempDir = path.join(process.cwd(), 'temp_tests');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -153,9 +157,9 @@ export default defineConfig({
     headless: ${headed ? 'false' : 'true'},
     navigationTimeout: ${navTimeout},
     actionTimeout: 30000,
-    trace: ${headed ? "'on'" : "'retain-on-failure'"},
-    screenshot: ${headed ? "'on'" : "'only-on-failure'"},
-    video: ${headed ? "'on'" : "'off'"},
+    trace: '${(0, playwright_artifacts_1.toPlaywrightTrace)(traceMode)}',
+    screenshot: '${(0, playwright_artifacts_1.toPlaywrightScreenshot)(screenshotMode)}',
+    video: '${(0, playwright_artifacts_1.toPlaywrightVideo)(videoMode)}',
   },
   reporter: [
     ['list'],

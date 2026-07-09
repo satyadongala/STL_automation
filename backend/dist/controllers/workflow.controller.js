@@ -7,6 +7,7 @@ exports.WorkflowController = void 0;
 const db_1 = __importDefault(require("../db"));
 const execution_router_1 = require("../services/execution-router");
 const headed_1 = require("../utils/headed");
+const playwright_artifacts_1 = require("../utils/playwright-artifacts");
 const definition_validator_1 = require("../workflow/definition-validator");
 const linear_to_definition_1 = require("../workflow/linear-to-definition");
 const ws_1 = require("../ws");
@@ -224,8 +225,11 @@ class WorkflowController {
     static async executeWorkflow(req, res) {
         try {
             const { id } = req.params;
-            const { environmentId, headed, workers } = req.body;
+            const { environmentId, headed, workers, video, trace, screenshot } = req.body;
             const headedMode = (0, headed_1.resolveHeaded)(headed);
+            const videoMode = (0, playwright_artifacts_1.resolveArtifactMode)(video, 'off');
+            const traceMode = (0, playwright_artifacts_1.resolveArtifactMode)(trace, 'failed');
+            const screenshotMode = (0, playwright_artifacts_1.resolveArtifactMode)(screenshot, 'failed');
             const workflow = await db_1.default.workflow.findUnique({
                 where: { id },
                 include: { testCases: { orderBy: { sortOrder: 'asc' } } },
@@ -257,6 +261,9 @@ class WorkflowController {
                 workflowDefinition: workflow.definition,
                 headed: headedMode,
                 workers: workers && workers > 0 ? workers : 1,
+                video: videoMode,
+                trace: traceMode,
+                screenshot: screenshotMode,
                 onLog: (logLine) => ws_1.wsManager.streamLog(run.id, logLine),
                 onStatusChange: (status) => ws_1.wsManager.streamStatus(run.id, status),
             });

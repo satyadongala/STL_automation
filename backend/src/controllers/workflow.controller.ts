@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../db';
 import { startExecution } from '../services/execution-router';
 import { resolveHeaded } from '../utils/headed';
+import { resolveArtifactMode } from '../utils/playwright-artifacts';
 import { hasControlFlowDefinition, parseWorkflowDefinition, DefinitionValidationError } from '../workflow/definition-validator';
 import { buildLinearWorkflowDefinition } from '../workflow/linear-to-definition';
 import { wsManager } from '../ws';
@@ -228,8 +229,11 @@ export class WorkflowController {
   public static async executeWorkflow(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { environmentId, headed, workers } = req.body;
+      const { environmentId, headed, workers, video, trace, screenshot } = req.body;
       const headedMode = resolveHeaded(headed);
+      const videoMode = resolveArtifactMode(video, 'off');
+      const traceMode = resolveArtifactMode(trace, 'failed');
+      const screenshotMode = resolveArtifactMode(screenshot, 'failed');
 
       const workflow = await prisma.workflow.findUnique({
         where: { id },
@@ -266,6 +270,9 @@ export class WorkflowController {
         workflowDefinition: workflow.definition,
         headed: headedMode,
         workers: workers && workers > 0 ? workers : 1,
+        video: videoMode,
+        trace: traceMode,
+        screenshot: screenshotMode,
         onLog: (logLine) => wsManager.streamLog(run.id, logLine),
         onStatusChange: (status) => wsManager.streamStatus(run.id, status),
       });

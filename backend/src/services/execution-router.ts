@@ -12,6 +12,9 @@ export interface StartExecutionParams {
   grepPattern?: string;
   headed?: boolean;
   workers?: number;
+  video?: 'on' | 'off' | 'failed';
+  trace?: 'on' | 'off' | 'failed';
+  screenshot?: 'on' | 'off' | 'failed';
   onLog?: (log: string) => void;
   onStatusChange?: (status: string) => void;
 }
@@ -48,6 +51,9 @@ export function startExecution(params: StartExecutionParams): void {
     grepPattern: params.grepPattern,
     headed: params.headed,
     workers: params.workers,
+    video: params.video,
+    trace: params.trace,
+    screenshot: params.screenshot,
     onLog: params.onLog,
     onStatusChange: params.onStatusChange,
   }).catch((err) => console.error(`Playwright execution error ${params.runId}:`, err));

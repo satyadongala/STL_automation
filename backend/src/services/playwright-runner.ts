@@ -7,6 +7,12 @@ import { ensurePlaywrightBrowsers } from './playwright-setup';
 import { generateAllureReport } from './allure-report.service';
 import { wsManager } from '../ws';
 import { resolveHeaded, ensureVirtualDisplay, useXvfbRunWrapper } from '../utils/headed';
+import {
+  resolveArtifactMode,
+  toPlaywrightScreenshot,
+  toPlaywrightTrace,
+  toPlaywrightVideo,
+} from '../utils/playwright-artifacts';
 
 export interface RunOptions {
   runId: string;
@@ -17,6 +23,9 @@ export interface RunOptions {
   grepPattern?: string; // Optional: grep pattern for execution
   headed?: boolean;
   workers?: number;
+  video?: 'on' | 'off' | 'failed';
+  trace?: 'on' | 'off' | 'failed';
+  screenshot?: 'on' | 'off' | 'failed';
   onLog?: (log: string) => void;
   onStatusChange?: (status: string) => void;
 }
@@ -28,8 +37,11 @@ export class PlaywrightRunner {
   private static activeProcesses: Map<string, any> = new Map();
 
   public static async execute(options: RunOptions): Promise<void> {
-    const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed: headedRequested, workers, onLog, onStatusChange } = options;
+    const { runId, projectId, environmentId, workflowId, testCaseIds, grepPattern, headed: headedRequested, workers, video: videoRequested, trace: traceRequested, screenshot: screenshotRequested, onLog, onStatusChange } = options;
     const headed = resolveHeaded(headedRequested);
+    const videoMode = resolveArtifactMode(videoRequested, headed ? 'on' : 'off');
+    const traceMode = resolveArtifactMode(traceRequested, headed ? 'on' : 'failed');
+    const screenshotMode = resolveArtifactMode(screenshotRequested, headed ? 'on' : 'failed');
 
     const tempDir = path.join(process.cwd(), 'temp_tests');
     if (!fs.existsSync(tempDir)) {
@@ -143,9 +155,9 @@ export default defineConfig({
     headless: ${headed ? 'false' : 'true'},
     navigationTimeout: ${navTimeout},
     actionTimeout: 30000,
-    trace: ${headed ? "'on'" : "'retain-on-failure'"},
-    screenshot: ${headed ? "'on'" : "'only-on-failure'"},
-    video: ${headed ? "'on'" : "'off'"},
+    trace: '${toPlaywrightTrace(traceMode)}',
+    screenshot: '${toPlaywrightScreenshot(screenshotMode)}',
+    video: '${toPlaywrightVideo(videoMode)}',
   },
   reporter: [
     ['list'],

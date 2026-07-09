@@ -8,10 +8,14 @@ const db_1 = __importDefault(require("../db"));
 const execution_router_1 = require("../services/execution-router");
 const ws_1 = require("../ws");
 const headed_1 = require("../utils/headed");
+const playwright_artifacts_1 = require("../utils/playwright-artifacts");
 const triggerExecution = async (req, res) => {
     try {
-        const { projectId, environmentId, testCaseIds, grepPattern, workflowId, headed, workers } = req.body;
+        const { projectId, environmentId, testCaseIds, grepPattern, workflowId, headed, workers, video, trace, screenshot } = req.body;
         const headedMode = (0, headed_1.resolveHeaded)(headed);
+        const videoMode = (0, playwright_artifacts_1.resolveArtifactMode)(video, 'off');
+        const traceMode = (0, playwright_artifacts_1.resolveArtifactMode)(trace, 'failed');
+        const screenshotMode = (0, playwright_artifacts_1.resolveArtifactMode)(screenshot, 'failed');
         if (!projectId) {
             return res.status(400).json({ error: 'projectId is required' });
         }
@@ -35,6 +39,7 @@ const triggerExecution = async (req, res) => {
             workflowDefinition = workflow?.definition ?? null;
         }
         ws_1.wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headedMode}\n`);
+        ws_1.wsManager.streamLog(run.id, `[SYS] Artifacts — video: ${videoMode}, trace: ${traceMode}, screenshot: ${screenshotMode}\n`);
         (0, execution_router_1.startExecution)({
             runId: run.id,
             projectId,
@@ -45,6 +50,9 @@ const triggerExecution = async (req, res) => {
             grepPattern,
             headed: headedMode,
             workers,
+            video: videoMode,
+            trace: traceMode,
+            screenshot: screenshotMode,
             onLog: (logLine) => ws_1.wsManager.streamLog(run.id, logLine),
             onStatusChange: (status) => ws_1.wsManager.streamStatus(run.id, status),
         });

@@ -3,11 +3,20 @@ import prisma from '../db';
 import { startExecution, stopExecution as stopRun } from '../services/execution-router';
 import { wsManager } from '../ws';
 import { resolveHeaded } from '../utils/headed';
+import {
+  resolveArtifactMode,
+  toPlaywrightScreenshot,
+  toPlaywrightTrace,
+  toPlaywrightVideo,
+} from '../utils/playwright-artifacts';
 
 export const triggerExecution = async (req: Request, res: Response) => {
   try {
-    const { projectId, environmentId, testCaseIds, grepPattern, workflowId, headed, workers } = req.body;
+    const { projectId, environmentId, testCaseIds, grepPattern, workflowId, headed, workers, video, trace, screenshot } = req.body;
     const headedMode = resolveHeaded(headed);
+    const videoMode = resolveArtifactMode(video, 'off');
+    const traceMode = resolveArtifactMode(trace, 'failed');
+    const screenshotMode = resolveArtifactMode(screenshot, 'failed');
 
     if (!projectId) {
       return res.status(400).json({ error: 'projectId is required' });
@@ -35,6 +44,7 @@ export const triggerExecution = async (req: Request, res: Response) => {
     }
 
     wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headedMode}\n`);
+    wsManager.streamLog(run.id, `[SYS] Artifacts — video: ${videoMode}, trace: ${traceMode}, screenshot: ${screenshotMode}\n`);
     startExecution({
       runId: run.id,
       projectId,
@@ -45,6 +55,9 @@ export const triggerExecution = async (req: Request, res: Response) => {
       grepPattern,
       headed: headedMode,
       workers,
+      video: videoMode,
+      trace: traceMode,
+      screenshot: screenshotMode,
       onLog: (logLine) => wsManager.streamLog(run.id, logLine),
       onStatusChange: (status) => wsManager.streamStatus(run.id, status),
     });

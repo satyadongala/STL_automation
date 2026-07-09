@@ -33,6 +33,9 @@ function startExecution(params) {
         grepPattern: params.grepPattern,
         headed: params.headed,
         workers: params.workers,
+        video: params.video,
+        trace: params.trace,
+        screenshot: params.screenshot,
         onLog: params.onLog,
         onStatusChange: params.onStatusChange,
     }).catch((err) => console.error(`Playwright execution error ${params.runId}:`, err));

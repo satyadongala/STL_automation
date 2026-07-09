@@ -49,13 +49,16 @@ export const api = {
   executeWorkflow: (
     workflowId: string,
     environmentId?: string | null,
-    options?: { headed?: boolean; workers?: number }
+    options?: { headed?: boolean; workers?: number; video?: 'on' | 'off' | 'failed'; trace?: 'on' | 'off' | 'failed'; screenshot?: 'on' | 'off' | 'failed' }
   ) =>
     apiClient
       .post(`/workflows/${workflowId}/execute`, {
         environmentId,
         headed: options?.headed,
         workers: options?.workers,
+        video: options?.video,
+        trace: options?.trace,
+        screenshot: options?.screenshot,
       })
       .then((res) => res.data),
 
@@ -64,7 +67,18 @@ export const api = {
   getProjectDownloadUrl: (projectId: string) => `${API_BASE_URL}/projects/${projectId}/generate/download`,
 
   // Executions
-  triggerRun: (data: { projectId: string; environmentId?: string | null; workflowId?: string | null; testCaseIds?: string[]; grepPattern?: string; headed?: boolean; workers?: number }) => 
+  triggerRun: (data: {
+    projectId: string;
+    environmentId?: string | null;
+    workflowId?: string | null;
+    testCaseIds?: string[];
+    grepPattern?: string;
+    headed?: boolean;
+    workers?: number;
+    video?: 'on' | 'off' | 'failed';
+    trace?: 'on' | 'off' | 'failed';
+    screenshot?: 'on' | 'off' | 'failed';
+  }) =>
     apiClient.post('/executions/run', data).then(res => res.data),
   getExecutions: (projectId?: string) => apiClient.get(`/executions/runs${projectId ? `?projectId=${projectId}` : ''}`).then(res => res.data),
   getExecution: (id: string) => apiClient.get(`/executions/runs/${id}`).then(res => res.data),

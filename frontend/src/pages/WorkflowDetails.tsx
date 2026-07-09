@@ -4,6 +4,8 @@ import { api } from '../api';
 import { useStore } from '../store/useStore';
 import { Play, Plus, ArrowUp, ArrowDown, Trash2, Settings, ChevronLeft, GitBranch } from 'lucide-react';
 import { WorkflowDefinitionEditor } from '../components/WorkflowDefinitionEditor';
+import { ArtifactModeSelect } from '../components/ArtifactModeSelect';
+import { loadArtifactMode, saveArtifactMode, type ArtifactMode } from '../constants/playwrightRunOptions';
 
 export const WorkflowDetails: React.FC = () => {
   const { projectId, workflowId } = useParams<{ projectId: string; workflowId: string }>();
@@ -16,8 +18,11 @@ export const WorkflowDetails: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedTestCaseToAdd, setSelectedTestCaseToAdd] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'linear' | 'controlflow'>('linear');
-  const [headedMode, setHeadedMode] = useState(false);
+  const [headedMode, setHeadedMode] = useState(() => localStorage.getItem('stl-headed') === '1');
   const [workersCount, setWorkersCount] = useState(1);
+  const [videoMode, setVideoMode] = useState<ArtifactMode>(() => loadArtifactMode('stl-video', 'off'));
+  const [traceMode, setTraceMode] = useState<ArtifactMode>(() => loadArtifactMode('stl-trace', 'failed'));
+  const [screenshotMode, setScreenshotMode] = useState<ArtifactMode>(() => loadArtifactMode('stl-screenshot', 'failed'));
 
   const projectType: 'API' | 'UI' = project?.projectType === 'UI' ? 'UI' : 'API';
   const isUiProject = projectType === 'UI';
@@ -98,6 +103,9 @@ export const WorkflowDetails: React.FC = () => {
       const run = await api.executeWorkflow(workflow.id, selectedEnvId || null, {
         headed: isUiProject ? headedMode : undefined,
         workers: isUiProject ? workersCount : undefined,
+        video: isUiProject ? videoMode : undefined,
+        trace: isUiProject ? traceMode : undefined,
+        screenshot: isUiProject ? screenshotMode : undefined,
       });
       addToast('Workflow execution triggered');
       navigate(`/execution/${run.id}`);
@@ -217,6 +225,9 @@ export const WorkflowDetails: React.FC = () => {
                   className="bg-white/85 border border-brand-200/50 rounded-lg px-2 py-1.5 text-xs font-semibold text-text-primary outline-none focus:border-brand-500 w-16"
                 />
               </div>
+              <ArtifactModeSelect id="wfVideoMode" label="Video" value={videoMode} onChange={(v) => { setVideoMode(v); saveArtifactMode('stl-video', v); }} />
+              <ArtifactModeSelect id="wfTraceMode" label="Trace" value={traceMode} onChange={(v) => { setTraceMode(v); saveArtifactMode('stl-trace', v); }} />
+              <ArtifactModeSelect id="wfScreenshotMode" label="Screenshot" value={screenshotMode} onChange={(v) => { setScreenshotMode(v); saveArtifactMode('stl-screenshot', v); }} />
             </>
           )}
           <div>

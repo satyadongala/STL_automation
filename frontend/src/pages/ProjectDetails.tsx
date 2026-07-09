@@ -6,6 +6,8 @@ import {
   Play, Plus, ArrowUp, ArrowDown, Trash2, Edit3, Sliders, Globe, Code, 
   Settings, CheckSquare, Square, Search, Copy, Check, GitCommit, FolderArchive
 } from 'lucide-react';
+import { ArtifactModeSelect } from '../components/ArtifactModeSelect';
+import { loadArtifactMode, saveArtifactMode, type ArtifactMode } from '../constants/playwrightRunOptions';
 
 export const ProjectDetails: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
@@ -23,6 +25,9 @@ export const ProjectDetails: React.FC = () => {
   const [newWorkflowDesc, setNewWorkflowDesc] = useState('');
   const [headedMode, setHeadedMode] = useState(() => localStorage.getItem('stl-headed') === '1');
   const [workersCount, setWorkersCount] = useState(1);
+  const [videoMode, setVideoMode] = useState<ArtifactMode>(() => loadArtifactMode('stl-video', 'off'));
+  const [traceMode, setTraceMode] = useState<ArtifactMode>(() => loadArtifactMode('stl-trace', 'failed'));
+  const [screenshotMode, setScreenshotMode] = useState<ArtifactMode>(() => loadArtifactMode('stl-screenshot', 'failed'));
   
   const { addToast } = useStore();
   const navigate = useNavigate();
@@ -77,6 +82,9 @@ export const ProjectDetails: React.FC = () => {
   const runOptions = () => ({
     headed: isUiProject ? headedMode : false,
     workers: isUiProject ? workersCount : undefined,
+    video: isUiProject ? videoMode : undefined,
+    trace: isUiProject ? traceMode : undefined,
+    screenshot: isUiProject ? screenshotMode : undefined,
   });
 
   // Handle single run
@@ -329,6 +337,33 @@ export const ProjectDetails: React.FC = () => {
                   className="bg-white/85 border border-brand-200/50 rounded-lg px-2 py-1.5 text-xs font-semibold text-text-primary outline-none focus:border-brand-500 transition-colors w-16"
                 />
               </div>
+              <ArtifactModeSelect
+                id="videoMode"
+                label="Video"
+                value={videoMode}
+                onChange={(v) => {
+                  setVideoMode(v);
+                  saveArtifactMode('stl-video', v);
+                }}
+              />
+              <ArtifactModeSelect
+                id="traceMode"
+                label="Trace"
+                value={traceMode}
+                onChange={(v) => {
+                  setTraceMode(v);
+                  saveArtifactMode('stl-trace', v);
+                }}
+              />
+              <ArtifactModeSelect
+                id="screenshotMode"
+                label="Screenshot"
+                value={screenshotMode}
+                onChange={(v) => {
+                  setScreenshotMode(v);
+                  saveArtifactMode('stl-screenshot', v);
+                }}
+              />
               <div className="w-px h-8 bg-brand-100 mx-1"></div>
             </>
           )}
