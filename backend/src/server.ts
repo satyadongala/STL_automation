@@ -10,9 +10,11 @@ import workflowRoutes from './routes/workflow.routes';
 import generatorRoutes from './routes/generator.routes';
 import sharedMethodRoutes from './routes/shared-method.routes';
 import systemRoutes from './routes/system.routes';
+import { isLiveBrowserAvailable, NOVNC_DIR } from './vnc-proxy';
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
@@ -30,6 +32,12 @@ app.use('/api/projects', generatorRoutes); // Generator routes use /projects/:pr
 app.use('/api', sharedMethodRoutes);
 app.use('/api/system', systemRoutes);
 
+// Live browser view (noVNC) on same port as the app — no extra Coolify port needed
+if (isLiveBrowserAvailable()) {
+  app.use('/live-browser', express.static(NOVNC_DIR));
+  console.log(`[SYS] Live browser UI at /live-browser/vnc.html`);
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
@@ -39,7 +47,7 @@ app.get('/health', (req, res) => {
 const publicDir = path.join(__dirname, '..', 'public');
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
-  app.get(/^(?!\/api).*/, (_req, res) => {
+  app.get(/^(?!\/api)(?!\/live-browser)(?!\/websockify).*/, (_req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
 } else {

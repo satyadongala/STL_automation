@@ -114,9 +114,10 @@ export class PlaywrightRunner {
       if (onLog) {
         onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
         onLog(`[SYS] Browser mode: ${headed ? 'headed' : 'headless'}\n`);
-        if (headed && process.env.VNC_PUBLIC_URL) {
-          const vnc = `${process.env.VNC_PUBLIC_URL.replace(/\/$/, '')}/vnc.html?autoconnect=true&resize=scale`;
-          onLog(`[SYS] Watch live browser: ${vnc}\n`);
+        if (headed) {
+          const proto = process.env.PUBLIC_URL?.startsWith('https') ? 'https' : 'http';
+          const host = process.env.PUBLIC_URL?.replace(/^https?:\/\//, '') || `localhost:${process.env.PORT || 5001}`;
+          onLog(`[SYS] Watch live browser: ${proto}://${host}/live-browser/vnc.html?autoconnect=true&resize=scale&path=websockify\n`);
         }
         onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
         onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);

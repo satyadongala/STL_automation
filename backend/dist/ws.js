@@ -8,8 +8,8 @@ class WebSocketManager {
     clients = new Map();
     logBuffers = new Map();
     statusBuffers = new Map();
-    init(server) {
-        this.wss = new ws_1.WebSocketServer({ server });
+    init() {
+        this.wss = new ws_1.WebSocketServer({ noServer: true });
         this.wss.on('connection', (ws, req) => {
             const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
             const runId = url.searchParams.get('runId');
@@ -39,6 +39,13 @@ class WebSocketManager {
                     }
                 }
             });
+        });
+    }
+    handleUpgrade(req, socket, head) {
+        if (!this.wss)
+            return;
+        this.wss.handleUpgrade(req, socket, head, (ws) => {
+            this.wss.emit('connection', ws, req);
         });
     }
     appendLogBuffer(runId, log) {

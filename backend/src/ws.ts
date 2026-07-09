@@ -1,5 +1,6 @@
-import { WebSocketServer, WebSocket } from 'ws';
 import * as http from 'http';
+import { Duplex } from 'stream';
+import { WebSocketServer, WebSocket } from 'ws';
 
 const MAX_BUFFER_CHARS = 500_000;
 
@@ -9,8 +10,8 @@ class WebSocketManager {
   private logBuffers: Map<string, string> = new Map();
   private statusBuffers: Map<string, string> = new Map();
 
-  public init(server: http.Server) {
-    this.wss = new WebSocketServer({ server });
+  public init() {
+    this.wss = new WebSocketServer({ noServer: true });
 
     this.wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
       const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
@@ -45,6 +46,13 @@ class WebSocketManager {
           }
         }
       });
+    });
+  }
+
+  public handleUpgrade(req: http.IncomingMessage, socket: Duplex, head: Buffer) {
+    if (!this.wss) return;
+    this.wss.handleUpgrade(req, socket, head, (ws) => {
+      this.wss!.emit('connection', ws, req);
     });
   }
 

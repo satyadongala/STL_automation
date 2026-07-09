@@ -15,7 +15,9 @@ const workflow_routes_1 = __importDefault(require("./routes/workflow.routes"));
 const generator_routes_1 = __importDefault(require("./routes/generator.routes"));
 const shared_method_routes_1 = __importDefault(require("./routes/shared-method.routes"));
 const system_routes_1 = __importDefault(require("./routes/system.routes"));
+const vnc_proxy_1 = require("./vnc-proxy");
 const app = (0, express_1.default)();
+app.set('trust proxy', 1);
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 // Serve Playwright HTML + Allure reports
@@ -30,6 +32,11 @@ app.use('/api', workflow_routes_1.default); // Use /api as prefix for workflow r
 app.use('/api/projects', generator_routes_1.default); // Generator routes use /projects/:projectId
 app.use('/api', shared_method_routes_1.default);
 app.use('/api/system', system_routes_1.default);
+// Live browser view (noVNC) on same port as the app — no extra Coolify port needed
+if ((0, vnc_proxy_1.isLiveBrowserAvailable)()) {
+    app.use('/live-browser', express_1.default.static(vnc_proxy_1.NOVNC_DIR));
+    console.log(`[SYS] Live browser UI at /live-browser/vnc.html`);
+}
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
@@ -38,7 +45,7 @@ app.get('/health', (req, res) => {
 const publicDir = path_1.default.join(__dirname, '..', 'public');
 if (fs_1.default.existsSync(publicDir)) {
     app.use(express_1.default.static(publicDir));
-    app.get(/^(?!\/api).*/, (_req, res) => {
+    app.get(/^(?!\/api)(?!\/live-browser)(?!\/websockify).*/, (_req, res) => {
         res.sendFile(path_1.default.join(publicDir, 'index.html'));
     });
 }

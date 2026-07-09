@@ -32,35 +32,37 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const dotenv = __importStar(require("dotenv"));
-const http = __importStar(require("http"));
-const server_1 = __importDefault(require("./server"));
-const ws_1 = require("./ws");
-const playwright_setup_1 = require("./services/playwright-setup");
-const vnc_proxy_1 = require("./vnc-proxy");
-dotenv.config();
-if (!process.env.DATABASE_URL) {
-    process.env.DATABASE_URL = 'file:/data/dev.db';
+exports.NOVNC_DIR = void 0;
+exports.isLiveBrowserAvailable = isLiveBrowserAvailable;
+exports.handleVncUpgrade = handleVncUpgrade;
+const fs = __importStar(require("fs"));
+const net = __importStar(require("net"));
+exports.NOVNC_DIR = '/usr/share/novnc';
+const WEBSOCKIFY_PORT = Number(process.env.WEBSOCKIFY_PORT) || 6080;
+function isLiveBrowserAvailable() {
+    return process.env.VNC_ENABLED !== '0' && fs.existsSync(exports.NOVNC_DIR);
 }
-const port = Number(process.env.PORT) || 5001;
-const server = http.createServer(server_1.default);
-ws_1.wsManager.init();
-server.on('upgrade', (req, socket, head) => {
-    if ((0, vnc_proxy_1.handleVncUpgrade)(req, socket, head))
-        return;
-    const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
-    if (url.searchParams.has('runId')) {
-        ws_1.wsManager.handleUpgrade(req, socket, head);
-        return;
-    }
-    socket.destroy();
-});
-server.listen(port, '0.0.0.0', () => {
-    console.log(`[SYS] Server running on http://localhost:${port}`);
-    console.log(`[SYS] WebSocket server is active on the same port ws://localhost:${port}`);
-    (0, playwright_setup_1.ensurePlaywrightBrowsersBackground)((msg) => process.stdout.write(msg));
-});
+/** TCP proxy for noVNC websocket → local websockify (no extra npm dep) */
+function handleVncUpgrade(req, socket, head) {
+    const pathname = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`).pathname;
+    if (pathname !== '/websockify' && pathname !== '/live-browser/websockify')
+        return false;
+    const backend = net.connect(WEBSOCKIFY_PORT, '127.0.0.1', () => {
+        const headers = { ...req.headers, host: `127.0.0.1:${WEBSOCKIFY_PORT}` };
+        let raw = 'GET / HTTP/1.1\r\n';
+        for (const [k, v] of Object.entries(headers)) {
+            if (v)
+                raw += `${k}: ${Array.isArray(v) ? v.join(', ') : v}\r\n`;
+        }
+        raw += '\r\n';
+        backend.write(raw);
+        if (head.length)
+            backend.write(head);
+        socket.pipe(backend);
+        backend.pipe(socket);
+    });
+    backend.on('error', () => socket.destroy());
+    socket.on('error', () => backend.destroy());
+    return true;
+}

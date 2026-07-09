@@ -34,13 +34,13 @@ ENV TZ=UTC
 # xvfb already in Playwright image; x11vnc + websockify + Java for live view + Allure
 RUN apt-get update && apt-get install -y --no-install-recommends \
     x11vnc python3-websockify openjdk-17-jre-headless ca-certificates curl \
-    && curl -fsSL https://github.com/novnc/noVNC/archive/refs/tags/v1.5.0.tar.gz \
+    && curl -fsSL https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz \
     | tar -xz -C /usr/share \
-    && mv /usr/share/noVNC-1.5.0 /usr/share/novnc \
+    && mv /usr/share/noVNC-1.4.0 /usr/share/novnc \
     && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html \
     && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 5001 6080
+EXPOSE 5001
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY backend/start.sh ./start.sh
