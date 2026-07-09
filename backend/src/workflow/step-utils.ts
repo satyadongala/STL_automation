@@ -62,6 +62,15 @@ export function buildUrl(baseUrl: string, rawPath: string, vars: Record<string, 
   if (!path) return base;
   if (path.startsWith('?') || path.startsWith('#')) return `${base}${path}`;
   const segment = path.replace(/^\/+/, '');
+  if (segment && !segment.includes('/')) {
+    try {
+      const u = new URL(base);
+      const p = u.pathname.replace(/\/+$/, '');
+      if (p.endsWith(`/${segment}`) || p.endsWith(segment)) return base;
+    } catch {
+      // ponytail: invalid base URL — fall through to string join
+    }
+  }
   return segment ? `${base}/${segment}` : base;
 }
 

@@ -76,8 +76,18 @@ function buildUrl(rawPath: string): string {
   if (!path) return base;
   if (path.startsWith('?') || path.startsWith('#')) return \`\${base}\${path}\`;
   const segment = path.replace(/^\\/+/, '');
+  if (segment && !segment.includes('/')) {
+    try {
+      const u = new URL(base);
+      const p = u.pathname.replace(/\\/+$/, '');
+      if (p.endsWith('/' + segment) || p.endsWith(segment)) return base;
+    } catch { /* invalid base */ }
+  }
   return segment ? \`\${base}/\${segment}\` : base;
 }
+
+const navTimeout = Number(process.env.UI_NAV_TIMEOUT_MS) || 90000;
+const actionTimeout = Number(process.env.UI_ACTION_TIMEOUT_MS) || 30000;
 
 function flattenSteps(steps: any[], passedParams: Record<string, string> = {}, depth = 0): any[] {
   if (depth > 20) throw new Error('Max depth exceeded - circular dependency in shared methods');
@@ -297,8 +307,10 @@ ${testCasesCode}
 
     const startedAt = Date.now();
     let flatSteps: any[] = [];
+    page.setDefaultTimeout(actionTimeout);
+    page.setDefaultNavigationTimeout(navTimeout);
     try {
-      await page.goto(startUrl);
+      await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: navTimeout });
       flatSteps = flattenSteps(steps);
 
       for (const [index, step] of flatSteps.entries()) {
@@ -312,11 +324,13 @@ ${testCasesCode}
         try {
           const locator = getLocator(page, step);
           if (action === 'goto') {
-            await page.goto(buildUrl(value || rawPath));
+            await page.goto(buildUrl(value || rawPath), { waitUntil: 'domcontentloaded', timeout: navTimeout });
             actualValue = page.url();
           } else if (action === 'click') {
+            await locator.waitFor({ state: 'visible', timeout: actionTimeout });
             await locator.click();
           } else if (action === 'fill') {
+            await locator.waitFor({ state: 'visible', timeout: actionTimeout });
             await locator.fill(value);
           } else if (action === 'select') {
             await locator.selectOption(value);
@@ -382,7 +396,11 @@ ${testCasesCode}
     });
 
     if (testFailed) {
-      throw new Error(errorMsg || 'One or more UI steps failed.');
+      const failed = stepResults.find((s: any) => s.passed === false);
+      const detail = failed
+        ? \`UI step failed: \${failed.label} (\${failed.action}) — \${failed.error || errorMsg}\`
+        : errorMsg;
+      throw new Error(detail || 'One or more UI steps failed.');
     }
   });
 `;

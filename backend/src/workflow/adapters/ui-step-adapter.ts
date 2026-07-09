@@ -21,7 +21,7 @@ export async function runUiSteps(
   const startedAt = Date.now();
 
   try {
-    await page.goto(startUrl);
+    await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 90_000 });
     const flatSteps = flattenUiSteps(steps, resources.sharedMethods);
 
     for (const [index, step] of flatSteps.entries()) {
@@ -35,11 +35,16 @@ export async function runUiSteps(
       try {
         const locator = getLocator(page, step);
         if (action === 'goto') {
-          await page.goto(buildUrl(resources.baseUrl, value || startPath, ctx.getSnapshot()));
+          await page.goto(buildUrl(resources.baseUrl, value || startPath, ctx.getSnapshot()), {
+            waitUntil: 'domcontentloaded',
+            timeout: 90_000,
+          });
           actualValue = page.url();
         } else if (action === 'click') {
+          await locator.waitFor({ state: 'visible', timeout: 30_000 });
           await locator.click();
         } else if (action === 'fill') {
+          await locator.waitFor({ state: 'visible', timeout: 30_000 });
           await locator.fill(value);
         } else if (action === 'select') {
           await locator.selectOption(value);

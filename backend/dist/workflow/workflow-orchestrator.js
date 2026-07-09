@@ -99,9 +99,8 @@ class WorkflowOrchestrator {
             trace.log(`[SYS] Project type: ${project.projectType || 'API'}\n`);
             trace.log(`[SYS] Environment: ${environment?.name || 'Default'}\n`);
             if (needsBrowser) {
-                const headedNote = (0, headed_1.headedOverrideNote)(headedRequested);
-                if (headedNote)
-                    trace.log(headedNote);
+                if (headed)
+                    await (0, headed_1.ensureVirtualDisplay)(onLog);
                 trace.log(`[SYS] Browser: ${headed ? 'headed' : 'headless'}\n`);
             }
             apiContext = await test_1.request.newContext({ baseURL: baseUrl });

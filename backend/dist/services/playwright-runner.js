@@ -105,6 +105,9 @@ class PlaywrightRunner {
             if (needsBrowser) {
                 await (0, playwright_setup_1.ensurePlaywrightBrowsers)(onLog);
             }
+            if (headed) {
+                await (0, headed_1.ensureVirtualDisplay)(onLog);
+            }
             // 3. Generate spec file content
             const sharedMethods = await db_1.default.sharedMethod.findMany({
                 where: { projectId }
@@ -120,19 +123,27 @@ class PlaywrightRunner {
                 onStatusChange('RUNNING');
             // Log setup
             if (onLog) {
-                const headedNote = (0, headed_1.headedOverrideNote)(headedRequested);
-                if (headedNote)
-                    onLog(headedNote);
                 onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
+                onLog(`[SYS] Browser mode: ${headed ? 'headed' : 'headless'}\n`);
                 onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
                 onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);
             }
             // 5. Prepare per-run Playwright config (list + json + html + allure reporters)
             fs.mkdirSync(htmlReportDir, { recursive: true });
             fs.mkdirSync(allureResultsDir, { recursive: true });
+            const uiTimeout = Number(process.env.UI_TEST_TIMEOUT_MS) || 120000;
+            const navTimeout = Number(process.env.UI_NAV_TIMEOUT_MS) || 90000;
             const configContent = `import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
+  timeout: ${uiTimeout},
+  expect: { timeout: 15000 },
+  use: {
+    navigationTimeout: ${navTimeout},
+    actionTimeout: 30000,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
   reporter: [
     ['list'],
     ['json', { outputFile: ${JSON.stringify(reportPath)} }],
