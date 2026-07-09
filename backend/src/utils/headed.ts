@@ -73,8 +73,8 @@ function startXvfb(display: string, onLog?: (msg: string) => void): Promise<stri
   });
 }
 
-export function resolveHeaded(requested?: boolean | string): boolean {
-  return requested === true || requested === 'true';
+export function resolveHeaded(requested?: boolean | string | number): boolean {
+  return requested === true || requested === 'true' || requested === 1 || requested === '1';
 }
 
 /** Only wrap with xvfb-run when no display exists — Docker entrypoint already sets DISPLAY=:99 for noVNC */

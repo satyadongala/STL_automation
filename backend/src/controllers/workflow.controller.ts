@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
 import { startExecution } from '../services/execution-router';
+import { resolveHeaded } from '../utils/headed';
 import { hasControlFlowDefinition, parseWorkflowDefinition, DefinitionValidationError } from '../workflow/definition-validator';
 import { buildLinearWorkflowDefinition } from '../workflow/linear-to-definition';
 import { wsManager } from '../ws';
@@ -228,6 +229,7 @@ export class WorkflowController {
     try {
       const { id } = req.params;
       const { environmentId, headed, workers } = req.body;
+      const headedMode = resolveHeaded(headed);
 
       const workflow = await prisma.workflow.findUnique({
         where: { id },
@@ -251,16 +253,18 @@ export class WorkflowController {
           status: 'PENDING',
           triggerType: 'MANUAL',
           executionMode: hasDefinition ? 'WORKFLOW' : 'LINEAR',
+          headed: headedMode,
         }
       });
 
+      wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headedMode}\n`);
       startExecution({
         runId: run.id,
         projectId: workflow.projectId,
         environmentId: environmentId || null,
         workflowId: workflow.id,
         workflowDefinition: workflow.definition,
-        headed: headed === true,
+        headed: headedMode,
         workers: workers && workers > 0 ? workers : 1,
         onLog: (logLine) => wsManager.streamLog(run.id, logLine),
         onStatusChange: (status) => wsManager.streamStatus(run.id, status),

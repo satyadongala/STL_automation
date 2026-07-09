@@ -130,7 +130,8 @@ export const ProjectsList: React.FC = () => {
   const handleRunAll = (projectId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    api.triggerRun({ projectId })
+    const headed = localStorage.getItem('stl-headed') === '1';
+    api.triggerRun({ projectId, headed })
       .then(run => {
         addToast('Execution triggered successfully');
         navigate(`/execution/${run.id}`);

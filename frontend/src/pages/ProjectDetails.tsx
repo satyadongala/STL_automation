@@ -21,7 +21,7 @@ export const ProjectDetails: React.FC = () => {
   const [showWorkflowModal, setShowWorkflowModal] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [newWorkflowDesc, setNewWorkflowDesc] = useState('');
-  const [headedMode, setHeadedMode] = useState(false);
+  const [headedMode, setHeadedMode] = useState(() => localStorage.getItem('stl-headed') === '1');
   const [workersCount, setWorkersCount] = useState(1);
   
   const { addToast } = useStore();
@@ -74,14 +74,18 @@ export const ProjectDetails: React.FC = () => {
 
   const isUiProject = project.projectType === 'UI' || testCases.some((tc) => tc.testType === 'UI');
 
+  const runOptions = () => ({
+    headed: isUiProject ? headedMode : false,
+    workers: isUiProject ? workersCount : undefined,
+  });
+
   // Handle single run
   const handleRunTestCase = (testCaseId: string) => {
     api.triggerRun({
       projectId: project.id,
       environmentId: selectedEnvId || null,
       testCaseIds: [testCaseId],
-      headed: isUiProject ? headedMode : undefined,
-      workers: isUiProject ? workersCount : undefined
+      ...runOptions(),
     })
       .then(run => {
         addToast('Execution triggered successfully');
@@ -100,8 +104,7 @@ export const ProjectDetails: React.FC = () => {
       projectId: project.id,
       environmentId: selectedEnvId || null,
       testCaseIds: Array.from(selectedTestCaseIds),
-      headed: isUiProject ? headedMode : undefined,
-      workers: isUiProject ? workersCount : undefined
+      ...runOptions(),
     })
       .then(run => {
         addToast(`Execution triggered for ${selectedTestCaseIds.size} tests`);
@@ -121,8 +124,7 @@ export const ProjectDetails: React.FC = () => {
       projectId: project.id,
       environmentId: selectedEnvId || null,
       testCaseIds: activeTestCases.map(tc => tc.id),
-      headed: isUiProject ? headedMode : undefined,
-      workers: isUiProject ? workersCount : undefined
+      ...runOptions(),
     })
       .then(run => {
         addToast(`Execution triggered for ${activeTestCases.length} tests`);
@@ -305,7 +307,11 @@ export const ProjectDetails: React.FC = () => {
                   type="checkbox"
                   id="headedMode"
                   checked={headedMode}
-                  onChange={(e) => setHeadedMode(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHeadedMode(checked);
+                    localStorage.setItem('stl-headed', checked ? '1' : '0');
+                  }}
                   className="w-3.5 h-3.5 rounded border-brand-300/40 bg-white/85 text-brand-500 focus:ring-brand-500"
                 />
                 <label htmlFor="headedMode" className="text-[10px] font-semibold text-label uppercase tracking-wider cursor-pointer">

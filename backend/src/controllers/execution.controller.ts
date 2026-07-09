@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import prisma from '../db';
 import { startExecution, stopExecution as stopRun } from '../services/execution-router';
 import { wsManager } from '../ws';
+import { resolveHeaded } from '../utils/headed';
 
 export const triggerExecution = async (req: Request, res: Response) => {
   try {
     const { projectId, environmentId, testCaseIds, grepPattern, workflowId, headed, workers } = req.body;
+    const headedMode = resolveHeaded(headed);
 
     if (!projectId) {
       return res.status(400).json({ error: 'projectId is required' });
@@ -18,7 +20,8 @@ export const triggerExecution = async (req: Request, res: Response) => {
         environmentId: environmentId || null,
         workflowId: workflowId || null,
         status: 'PENDING',
-        triggerType: 'MANUAL'
+        triggerType: 'MANUAL',
+        headed: headedMode,
       }
     });
 
@@ -31,6 +34,7 @@ export const triggerExecution = async (req: Request, res: Response) => {
       workflowDefinition = workflow?.definition ?? null;
     }
 
+    wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headedMode}\n`);
     startExecution({
       runId: run.id,
       projectId,
@@ -39,12 +43,11 @@ export const triggerExecution = async (req: Request, res: Response) => {
       workflowDefinition,
       testCaseIds,
       grepPattern,
-      headed: headed === true,
+      headed: headedMode,
       workers,
       onLog: (logLine) => wsManager.streamLog(run.id, logLine),
       onStatusChange: (status) => wsManager.streamStatus(run.id, status),
     });
-    wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headed === true}\n`);
 
     // Return the run details immediately
     res.status(202).json(run);

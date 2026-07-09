@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkflowController = void 0;
 const db_1 = __importDefault(require("../db"));
 const execution_router_1 = require("../services/execution-router");
+const headed_1 = require("../utils/headed");
 const definition_validator_1 = require("../workflow/definition-validator");
 const linear_to_definition_1 = require("../workflow/linear-to-definition");
 const ws_1 = require("../ws");
@@ -224,6 +225,7 @@ class WorkflowController {
         try {
             const { id } = req.params;
             const { environmentId, headed, workers } = req.body;
+            const headedMode = (0, headed_1.resolveHeaded)(headed);
             const workflow = await db_1.default.workflow.findUnique({
                 where: { id },
                 include: { testCases: { orderBy: { sortOrder: 'asc' } } },
@@ -243,15 +245,17 @@ class WorkflowController {
                     status: 'PENDING',
                     triggerType: 'MANUAL',
                     executionMode: hasDefinition ? 'WORKFLOW' : 'LINEAR',
+                    headed: headedMode,
                 }
             });
+            ws_1.wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headedMode}\n`);
             (0, execution_router_1.startExecution)({
                 runId: run.id,
                 projectId: workflow.projectId,
                 environmentId: environmentId || null,
                 workflowId: workflow.id,
                 workflowDefinition: workflow.definition,
-                headed: headed === true,
+                headed: headedMode,
                 workers: workers && workers > 0 ? workers : 1,
                 onLog: (logLine) => ws_1.wsManager.streamLog(run.id, logLine),
                 onStatusChange: (status) => ws_1.wsManager.streamStatus(run.id, status),

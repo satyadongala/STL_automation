@@ -7,9 +7,11 @@ exports.getDashboardStats = exports.stopExecution = exports.getExecutionSpans = 
 const db_1 = __importDefault(require("../db"));
 const execution_router_1 = require("../services/execution-router");
 const ws_1 = require("../ws");
+const headed_1 = require("../utils/headed");
 const triggerExecution = async (req, res) => {
     try {
         const { projectId, environmentId, testCaseIds, grepPattern, workflowId, headed, workers } = req.body;
+        const headedMode = (0, headed_1.resolveHeaded)(headed);
         if (!projectId) {
             return res.status(400).json({ error: 'projectId is required' });
         }
@@ -20,7 +22,8 @@ const triggerExecution = async (req, res) => {
                 environmentId: environmentId || null,
                 workflowId: workflowId || null,
                 status: 'PENDING',
-                triggerType: 'MANUAL'
+                triggerType: 'MANUAL',
+                headed: headedMode,
             }
         });
         let workflowDefinition = null;
@@ -31,6 +34,7 @@ const triggerExecution = async (req, res) => {
             });
             workflowDefinition = workflow?.definition ?? null;
         }
+        ws_1.wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headedMode}\n`);
         (0, execution_router_1.startExecution)({
             runId: run.id,
             projectId,
@@ -39,12 +43,11 @@ const triggerExecution = async (req, res) => {
             workflowDefinition,
             testCaseIds,
             grepPattern,
-            headed: headed === true,
+            headed: headedMode,
             workers,
             onLog: (logLine) => ws_1.wsManager.streamLog(run.id, logLine),
             onStatusChange: (status) => ws_1.wsManager.streamStatus(run.id, status),
         });
-        ws_1.wsManager.streamLog(run.id, `[SYS] Headed mode requested: ${headed === true}\n`);
         // Return the run details immediately
         res.status(202).json(run);
     }

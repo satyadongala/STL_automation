@@ -56,6 +56,12 @@ class PlaywrightRunner {
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
+        let systemLogs = '';
+        const sysLog = (msg) => {
+            systemLogs += msg;
+            if (onLog)
+                onLog(msg);
+        };
         const specPath = path.join(tempDir, `run_${runId}.spec.ts`);
         const reportPath = path.join(tempDir, `report_${runId}.json`);
         const configPath = path.join(tempDir, `playwright.config.${runId}.ts`);
@@ -103,12 +109,12 @@ class PlaywrightRunner {
             const needsBrowser = project.projectType === 'UI' ||
                 testCases.some((tc) => tc.testType === 'UI' || tc.method === 'UI');
             if (needsBrowser) {
-                await (0, playwright_setup_1.ensurePlaywrightBrowsers)(onLog);
+                await (0, playwright_setup_1.ensurePlaywrightBrowsers)(sysLog);
             }
             if (headed) {
-                const display = await (0, headed_1.ensureVirtualDisplay)(onLog);
-                if (display && onLog)
-                    onLog(`[SYS] DISPLAY=${display}\n`);
+                const display = await (0, headed_1.ensureVirtualDisplay)(sysLog);
+                if (display)
+                    sysLog(`[SYS] DISPLAY=${display}\n`);
             }
             // 3. Generate spec file content
             const sharedMethods = await db_1.default.sharedMethod.findMany({
@@ -124,17 +130,15 @@ class PlaywrightRunner {
             if (onStatusChange)
                 onStatusChange('RUNNING');
             // Log setup
-            if (onLog) {
-                onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
-                onLog(`[SYS] Browser mode: ${headed ? 'headed' : 'headless'}\n`);
-                if (headed) {
-                    const proto = process.env.PUBLIC_URL?.startsWith('https') ? 'https' : 'http';
-                    const host = process.env.PUBLIC_URL?.replace(/^https?:\/\//, '') || `localhost:${process.env.PORT || 5001}`;
-                    onLog(`[SYS] Watch live browser: ${proto}://${host}/live-browser/vnc.html?autoconnect=true&resize=scale&path=websockify\n`);
-                }
-                onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
-                onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);
+            sysLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
+            sysLog(`[SYS] Browser mode: ${headed ? 'headed' : 'headless'}\n`);
+            if (headed) {
+                const proto = process.env.PUBLIC_URL?.startsWith('https') ? 'https' : 'http';
+                const host = process.env.PUBLIC_URL?.replace(/^https?:\/\//, '') || `localhost:${process.env.PORT || 5001}`;
+                sysLog(`[SYS] Watch live browser: ${proto}://${host}/live-browser/vnc.html?autoconnect=true&resize=scale&path=websockify\n`);
             }
+            sysLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
+            sysLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);
             // 5. Prepare per-run Playwright config (list + json + html + allure reporters)
             fs.mkdirSync(htmlReportDir, { recursive: true });
             fs.mkdirSync(allureResultsDir, { recursive: true });
@@ -175,8 +179,7 @@ export default defineConfig({
             // Support grep pattern if provided
             if (grepPattern) {
                 args.push('--grep', grepPattern);
-                if (onLog)
-                    onLog(`[SYS] Applying grep filter: "${grepPattern}"\n`);
+                sysLog(`[SYS] Applying grep filter: "${grepPattern}"\n`);
             }
             else if (testCaseIds && testCaseIds.length > 0) {
                 // If specific test case IDs are requested, we can use a grep pattern matching the IDs
@@ -190,19 +193,19 @@ export default defineConfig({
             };
             delete runEnv.FORCE_COLOR;
             if (headed) {
-                const display = process.env.DISPLAY || (await (0, headed_1.ensureVirtualDisplay)(onLog));
+                const display = process.env.DISPLAY || (await (0, headed_1.ensureVirtualDisplay)(sysLog));
                 if (display) {
                     runEnv.DISPLAY = display;
-                    if (onLog)
-                        onLog(`[SYS] Chromium DISPLAY=${display}\n`);
+                    sysLog(`[SYS] Chromium DISPLAY=${display}\n`);
                 }
+                // ponytail: Coolify/Docker often sets CI=1 which can interfere with headed runs
+                delete runEnv.CI;
+                delete runEnv.PLAYWRIGHT_HEADLESS;
             }
             const startTime = Date.now();
             // Use npx directly when DISPLAY is set (same screen as noVNC). xvfb-run -a uses a different display.
             const useXvfb = (0, headed_1.useXvfbRunWrapper)(headed);
-            if (onLog) {
-                onLog(`[SYS] Spawn: ${useXvfb ? 'xvfb-run' : 'npx'}${headed ? ' --headed' : ''}\n`);
-            }
+            sysLog(`[SYS] Spawn: ${useXvfb ? 'xvfb-run' : 'npx'}${headed ? ' --headed' : ''}\n`);
             const spawnCmd = useXvfb ? 'xvfb-run' : 'npx';
             const spawnArgs = useXvfb
                 ? ['-a', '--server-args=-screen 0 1920x1080x24', 'npx', ...args]
@@ -360,7 +363,7 @@ export default defineConfig({
                                 summaryFailed: failedCount,
                                 summaryTotal: passedCount + failedCount,
                                 durationMs: durationMs,
-                                rawLogs: accumulatedLogs
+                                rawLogs: systemLogs + accumulatedLogs
                             }
                         });
                         if (onStatusChange)
@@ -379,7 +382,7 @@ export default defineConfig({
                     // Force update status to FAILED in case of save error
                     await db_1.default.executionRun.update({
                         where: { id: runId },
-                        data: { status: 'FAILED', rawLogs: accumulatedLogs + `\nDB Write Error: ${dbErr.message}` }
+                        data: { status: 'FAILED', rawLogs: systemLogs + accumulatedLogs + `\nDB Write Error: ${dbErr.message}` }
                     });
                     if (onStatusChange)
                         onStatusChange('FAILED');
@@ -401,7 +404,7 @@ export default defineConfig({
             // Update DB to failed
             await db_1.default.executionRun.update({
                 where: { id: runId },
-                data: { status: 'FAILED', rawLogs: `[FATAL] ${err.message}` }
+                data: { status: 'FAILED', rawLogs: systemLogs + `[FATAL] ${err.message}` }
             });
             if (onStatusChange)
                 onStatusChange('FAILED');

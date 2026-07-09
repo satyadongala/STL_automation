@@ -128,7 +128,12 @@ export class WorkflowOrchestrator {
       apiContext = await request.newContext({ baseURL: baseUrl });
       if (needsBrowser) {
         await ensurePlaywrightBrowsers(onLog);
-        browser = await chromium.launch({ headless: !headed });
+        const launchEnv = { ...process.env };
+        if (headed) {
+          delete launchEnv.CI;
+          delete launchEnv.PLAYWRIGHT_HEADLESS;
+        }
+        browser = await chromium.launch({ headless: !headed, env: launchEnv });
         page = await browser.newPage();
       }
 

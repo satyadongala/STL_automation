@@ -30,6 +30,7 @@ export const ExecutionConsole: React.FC = () => {
   const [spans, setSpans] = useState<ExecutionSpan[]>([]);
   const [executionMode, setExecutionMode] = useState<string>('LINEAR');
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
+  const [runHeaded, setRunHeaded] = useState(false);
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export const ExecutionConsole: React.FC = () => {
     const loadRun = () => {
       api.getExecution(runId).then((run) => {
         setExecutionMode(run.executionMode || 'LINEAR');
+        setRunHeaded(Boolean(run.headed));
         if (run.spans?.length) setSpans(run.spans);
         if (run.status) updateActiveRunStatus(run.status);
         if (run.rawLogs) {
@@ -100,11 +102,22 @@ export const ExecutionConsole: React.FC = () => {
 
   const isRunning = activeRun.status === 'RUNNING' || activeRun.status === 'PENDING';
 
-  const isHeadedRun = activeRun.logs.some((l) => l.includes('Browser mode: headed'));
+  const isHeadedRun =
+    runHeaded ||
+    activeRun.logs.some((l) => l.includes('Headed mode requested: true')) ||
+    activeRun.logs.some((l) => l.includes('Browser mode: headed'));
   const showLiveView = isRunning && isHeadedRun && liveViewUrl;
+  const showHeadlessNote =
+    isRunning && activeRun.logs.some((l) => l.includes('Browser mode: headless'));
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-5xl mx-auto w-full flex flex-col min-h-0">
+
+      {showHeadlessNote && (
+        <div className="glass-card p-4 rounded-2xl mb-4 border border-amber-300/50 text-sm text-amber-900">
+          Running in <strong>headless</strong> mode. Enable &quot;Headed Mode&quot; on the project page before clicking Run to watch the browser live.
+        </div>
+      )}
 
       {showLiveView && (
         <div className="glass-card p-4 rounded-2xl mb-4 border border-brand-300/50 flex flex-wrap items-center justify-between gap-3">
