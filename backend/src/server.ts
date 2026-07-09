@@ -9,6 +9,7 @@ import executionRoutes from './routes/execution.routes';
 import workflowRoutes from './routes/workflow.routes';
 import generatorRoutes from './routes/generator.routes';
 import sharedMethodRoutes from './routes/shared-method.routes';
+import systemRoutes from './routes/system.routes';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/executions', executionRoutes);
 app.use('/api', workflowRoutes); // Use /api as prefix for workflow routes
 app.use('/api/projects', generatorRoutes); // Generator routes use /projects/:projectId
 app.use('/api', sharedMethodRoutes);
+app.use('/api/system', systemRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

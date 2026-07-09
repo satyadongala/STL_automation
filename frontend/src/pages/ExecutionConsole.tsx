@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { reportUrl } from '../config';
 import { useStore } from '../store/useStore';
-import { Square, Loader, FileText, ChevronRight } from 'lucide-react';
+import { Square, Loader, FileText, ChevronRight, Monitor } from 'lucide-react';
 import { ExecutionSpanTree, type ExecutionSpan } from '../components/ExecutionSpanTree';
 
 const stripAnsi = (text: string) =>
@@ -29,6 +29,7 @@ export const ExecutionConsole: React.FC = () => {
   const [stopping, setStopping] = useState(false);
   const [spans, setSpans] = useState<ExecutionSpan[]>([]);
   const [executionMode, setExecutionMode] = useState<string>('LINEAR');
+  const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +47,12 @@ export const ExecutionConsole: React.FC = () => {
       consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [activeRun.logs]);
+
+  useEffect(() => {
+    api.getLiveBrowserView().then((v) => {
+      if (v?.enabled && v?.url) setLiveViewUrl(v.url);
+    }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!runId) return;
@@ -93,8 +100,28 @@ export const ExecutionConsole: React.FC = () => {
 
   const isRunning = activeRun.status === 'RUNNING' || activeRun.status === 'PENDING';
 
+  const isHeadedRun = activeRun.logs.some((l) => l.includes('Browser mode: headed'));
+  const showLiveView = isRunning && isHeadedRun && liveViewUrl;
+
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-5xl mx-auto w-full flex flex-col min-h-0">
+
+      {showLiveView && (
+        <div className="glass-card p-4 rounded-2xl mb-4 border border-brand-300/50 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-text-primary">
+            <Monitor className="w-5 h-5 text-brand-700" />
+            <span>Headed test running — watch Chrome live in your browser</span>
+          </div>
+          <a
+            href={liveViewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 btn-primary rounded-lg text-xs font-semibold"
+          >
+            Open Live Browser View
+          </a>
+        </div>
+      )}
       
       {/* Header Info */}
       <div className="glass-card p-6 rounded-2xl mb-6 flex flex-wrap items-center justify-between gap-6">

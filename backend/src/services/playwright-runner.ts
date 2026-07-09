@@ -6,7 +6,7 @@ import { PlaywrightGenerator } from './playwright-generator';
 import { ensurePlaywrightBrowsers } from './playwright-setup';
 import { generateAllureReport } from './allure-report.service';
 import { wsManager } from '../ws';
-import { resolveHeaded, ensureVirtualDisplay } from '../utils/headed';
+import { resolveHeaded, ensureVirtualDisplay, useXvfbRunWrapper } from '../utils/headed';
 
 export interface RunOptions {
   runId: string;
@@ -91,7 +91,8 @@ export class PlaywrightRunner {
       }
 
       if (headed) {
-        await ensureVirtualDisplay(onLog);
+        const display = await ensureVirtualDisplay(onLog);
+        if (display && onLog) onLog(`[SYS] DISPLAY=${display}\n`);
       }
 
       // 3. Generate spec file content
@@ -113,6 +114,10 @@ export class PlaywrightRunner {
       if (onLog) {
         onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
         onLog(`[SYS] Browser mode: ${headed ? 'headed' : 'headless'}\n`);
+        if (headed && process.env.VNC_PUBLIC_URL) {
+          const vnc = `${process.env.VNC_PUBLIC_URL.replace(/\/$/, '')}/vnc.html?autoconnect=true&resize=scale`;
+          onLog(`[SYS] Watch live browser: ${vnc}\n`);
+        }
         onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
         onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);
       }
@@ -132,8 +137,9 @@ export default defineConfig({
   use: {
     navigationTimeout: ${navTimeout},
     actionTimeout: 30000,
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    trace: ${headed ? "'on'" : "'retain-on-failure'"},
+    screenshot: ${headed ? "'on'" : "'only-on-failure'"},
+    video: ${headed ? "'on'" : "'off'"},
   },
   reporter: [
     ['list'],
@@ -176,8 +182,14 @@ export default defineConfig({
 
       const startTime = Date.now();
 
-      // 6. Spawn Playwright Process
-      const child = spawn('npx', args, { env: runEnv });
+      // 6. Spawn Playwright Process (xvfb-run wraps headed runs on Linux — most reliable in Docker)
+      const useXvfb = useXvfbRunWrapper(headed);
+      const spawnCmd = useXvfb ? 'xvfb-run' : 'npx';
+      const spawnArgs = useXvfb
+        ? ['-a', '--server-args=-screen 0 1920x1080x24', 'npx', ...args]
+        : args;
+
+      const child = spawn(spawnCmd, spawnArgs, { env: runEnv });
       this.activeProcesses.set(runId, child);
 
       let accumulatedLogs = '';

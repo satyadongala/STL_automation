@@ -27,12 +27,13 @@ COPY --from=frontend-build /app/frontend/dist ./public
 ENV NODE_ENV=production
 ENV PORT=5001
 ENV DATABASE_URL=file:/data/dev.db
-ENV DISPLAY=:99
 
-# Xvfb + Java (Allure reports) for production UI test runs
-RUN apt-get update && apt-get install -y --no-install-recommends xvfb openjdk-17-jre-headless && rm -rf /var/lib/apt/lists/*
+# Xvfb + noVNC (live browser) + Java (Allure). DISPLAY is set at runtime by entrypoint.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb x11vnc novnc python3-websockify openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 5001
+EXPOSE 5001 6080
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY backend/start.sh ./start.sh

@@ -3,10 +3,15 @@ services:
     build: .
     ports:
       - "5001:5001"
+      - "6080:6080"
     environment:
       - PORT=5001
       - DATABASE_URL=file:/data/dev.db
       - NODE_ENV=production
+      - VNC_ENABLED=1
+      - VNC_PORT=6080
+      - VNC_PUBLIC_URL=http://localhost:6080
+      - VNC_PASSWORD=changeme
     # Playwright/Chromium needs shared memory in Docker
     shm_size: "1gb"
     volumes:

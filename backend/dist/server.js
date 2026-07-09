@@ -14,6 +14,7 @@ const execution_routes_1 = __importDefault(require("./routes/execution.routes"))
 const workflow_routes_1 = __importDefault(require("./routes/workflow.routes"));
 const generator_routes_1 = __importDefault(require("./routes/generator.routes"));
 const shared_method_routes_1 = __importDefault(require("./routes/shared-method.routes"));
+const system_routes_1 = __importDefault(require("./routes/system.routes"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
@@ -28,6 +29,7 @@ app.use('/api/executions', execution_routes_1.default);
 app.use('/api', workflow_routes_1.default); // Use /api as prefix for workflow routes
 app.use('/api/projects', generator_routes_1.default); // Generator routes use /projects/:projectId
 app.use('/api', shared_method_routes_1.default);
+app.use('/api/system', system_routes_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });

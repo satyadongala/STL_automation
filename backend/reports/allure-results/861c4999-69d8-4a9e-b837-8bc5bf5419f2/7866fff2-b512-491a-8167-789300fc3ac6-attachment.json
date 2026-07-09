@@ -1,0 +1,1 @@
+[{"type":"status_code","expected":"200","resolvedExpected":"200","actual":200,"passed":true},{"type":"json_path","path":"$.data[0]. name","operator":"equals","expected":"Fridge cleaning","resolvedExpected":"Fridge cleaning","actual":"Fridge cleaning","passed":true}]

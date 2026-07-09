@@ -106,7 +106,9 @@ class PlaywrightRunner {
                 await (0, playwright_setup_1.ensurePlaywrightBrowsers)(onLog);
             }
             if (headed) {
-                await (0, headed_1.ensureVirtualDisplay)(onLog);
+                const display = await (0, headed_1.ensureVirtualDisplay)(onLog);
+                if (display && onLog)
+                    onLog(`[SYS] DISPLAY=${display}\n`);
             }
             // 3. Generate spec file content
             const sharedMethods = await db_1.default.sharedMethod.findMany({
@@ -125,6 +127,10 @@ class PlaywrightRunner {
             if (onLog) {
                 onLog(`[SYS] Starting Playwright Test Execution. Spec: run_${runId}.spec.ts\n`);
                 onLog(`[SYS] Browser mode: ${headed ? 'headed' : 'headless'}\n`);
+                if (headed && process.env.VNC_PUBLIC_URL) {
+                    const vnc = `${process.env.VNC_PUBLIC_URL.replace(/\/$/, '')}/vnc.html?autoconnect=true&resize=scale`;
+                    onLog(`[SYS] Watch live browser: ${vnc}\n`);
+                }
                 onLog(`[SYS] Project: ${project.name}, Environment: ${environment?.name || 'Default'}\n`);
                 onLog(`[SYS] Executing ${testCases.length} test case(s)...\n\n`);
             }
@@ -141,8 +147,9 @@ export default defineConfig({
   use: {
     navigationTimeout: ${navTimeout},
     actionTimeout: 30000,
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    trace: ${headed ? "'on'" : "'retain-on-failure'"},
+    screenshot: ${headed ? "'on'" : "'only-on-failure'"},
+    video: ${headed ? "'on'" : "'off'"},
   },
   reporter: [
     ['list'],
@@ -181,8 +188,13 @@ export default defineConfig({
             };
             delete runEnv.FORCE_COLOR;
             const startTime = Date.now();
-            // 6. Spawn Playwright Process
-            const child = (0, child_process_1.spawn)('npx', args, { env: runEnv });
+            // 6. Spawn Playwright Process (xvfb-run wraps headed runs on Linux — most reliable in Docker)
+            const useXvfb = (0, headed_1.useXvfbRunWrapper)(headed);
+            const spawnCmd = useXvfb ? 'xvfb-run' : 'npx';
+            const spawnArgs = useXvfb
+                ? ['-a', '--server-args=-screen 0 1920x1080x24', 'npx', ...args]
+                : args;
+            const child = (0, child_process_1.spawn)(spawnCmd, spawnArgs, { env: runEnv });
             this.activeProcesses.set(runId, child);
             let accumulatedLogs = '';
             child.stdout.on('data', (data) => {

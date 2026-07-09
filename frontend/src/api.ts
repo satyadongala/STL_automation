@@ -76,6 +76,8 @@ export const api = {
   getSharedMethod: (id: string) => apiClient.get(`/shared-methods/${id}`).then(res => res.data),
   createSharedMethod: (projectId: string, data: any) => apiClient.post(`/projects/${projectId}/shared-methods`, data).then(res => res.data),
   updateSharedMethod: (id: string, data: any) => apiClient.put(`/shared-methods/${id}`, data).then(res => res.data),
-  deleteSharedMethod: (id: string) => apiClient.delete(`/shared-methods/${id}`).then(res => res.data)
+  deleteSharedMethod: (id: string) => apiClient.delete(`/shared-methods/${id}`).then(res => res.data),
+
+  getLiveBrowserView: () => apiClient.get('/system/live-browser').then(res => res.data),
 };
 
