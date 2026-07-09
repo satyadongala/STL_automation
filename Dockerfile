@@ -27,10 +27,17 @@ COPY --from=frontend-build /app/frontend/dist ./public
 ENV NODE_ENV=production
 ENV PORT=5001
 ENV DATABASE_URL=file:/data/dev.db
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
 
-# Xvfb + noVNC (live browser) + Java (Allure). DISPLAY is set at runtime by entrypoint.
+# ponytail: skip apt novnc (pulls 70+ pkgs + interactive tzdata) — fetch noVNC static files instead
+# xvfb already in Playwright image; x11vnc + websockify + Java for live view + Allure
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    xvfb x11vnc novnc python3-websockify openjdk-17-jre-headless \
+    x11vnc python3-websockify openjdk-17-jre-headless ca-certificates curl \
+    && curl -fsSL https://github.com/novnc/noVNC/archive/refs/tags/v1.5.0.tar.gz \
+    | tar -xz -C /usr/share \
+    && mv /usr/share/noVNC-1.5.0 /usr/share/novnc \
+    && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html \
     && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5001 6080
