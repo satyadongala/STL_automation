@@ -37,8 +37,11 @@ if ((0, vnc_proxy_1.isLiveBrowserAvailable)()) {
     app.use('/live-browser', express_1.default.static(vnc_proxy_1.NOVNC_DIR));
     console.log(`[SYS] Live browser UI at /live-browser/vnc.html`);
 }
-// Health check
+// Health check (Coolify / load balancers)
 app.get('/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date() });
+});
+app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
 });
 // Serve built frontend (Docker / production)

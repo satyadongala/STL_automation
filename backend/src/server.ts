@@ -38,8 +38,11 @@ if (isLiveBrowserAvailable()) {
   console.log(`[SYS] Live browser UI at /live-browser/vnc.html`);
 }
 
-// Health check
+// Health check (Coolify / load balancers)
 app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date() });
+});
+app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 

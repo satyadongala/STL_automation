@@ -11,5 +11,9 @@ backend/dev.db
 backend/temp_tests
 backend/reports
 backend/test-results
+backend/project_workspaces
 playwright-report
+mcp-server
+agent-transcripts
 .DS_Store
+**/*.log
